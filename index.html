@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Optional theme
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap-theme.min.css">-->
+
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery.nicescroll/3.5.1/jquery.nicescroll.min.js"></script>
+
+    <style type="text/css">
+        #table_wrapper {
+            overflow: auto;
+            height: 500px
+        }
+
+        #search_group {
+            padding-top: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-bottom: 10px;
+        }
+
+        .disabled_link {
+            pointer-events: none;
+        }
+
+        .popover{
+            max-width: 600px;
+        }
+
+    </style>
+</head>
+<body>
+<!-- Modal -->
+<div class="modal fade" id="search_results" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span
+                        class="sr-only">Close</span></button>
+                <h4 class="modal-title" id="myModalLabel">Search Results</h4>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped" id="results_table">
+                    <thead>
+                    <tr>
+                        <th>Show Name
+                        </th>
+                        <th>First Aired</th>
+                        <th>Network</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="row">
+        <div id="search_group" class="col-md-8 col-md-offset-2">
+            <div class="input-group input-group-lg">
+                <input type="search" class="form-control" id="txt_showSearch" placeholder="Search for a show">
+                <span class="input-group-btn">
+                    <button id="btn_showSearch" class="btn btn-primary" type="button">
+                        <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                    </button>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            <div id="admin_group" class="btn-group btn-group-justified" role="group" aria-label="...">
+                % if shows:
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info" data-admin="refresh"><i class="fa fa-refresh"></i>
+                            Refresh Episodes
+                        </button>
+                    </div>
+                % endif
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-info" data-admin="scan"><i class="fa fa-cog"></i> Scan
+                        Web
+                    </button>
+                </div>
+                <div class="btn-group" role="group">
+                    <a href="/log/" class="btn btn-info">
+                        <span class="glyphicon glyphicon-file"></span> Log
+                    </a>
+                </div>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-danger btn-movie" data-movie_ignore="false" data-movie_id="0">
+                        <span class="glyphicon glyphicon-flash"></span> Movie DB Cleanup
+                    </button>
+                </div>
+
+            </div>
+            <div id="alert_admin" class="alert alert-success" role="alert" style="display:none;"></div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            <h3>TV</h3>
+
+            <div id="table_wrapper">
+                <div role="tabpanel">
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li role="presentation" class="active"><a href="#upcoming" aria-controls="upcoming" role="tab"
+                                                                  data-toggle="tab">Upcoming</a></li>
+                        <li role="presentation"><a href="#shows" aria-controls="show" role="tab"
+                                                   data-toggle="tab">Shows</a></li>
+                    </ul>
+                </div>
+                <div class="tab-content">
+                    <div role="tabpanel" class="tab-pane active" id="upcoming">
+                        % if upcoming
+                            <table id="table_shows" class="table table-striped table-hover table-condensed">
+                                <thead>
+                                <tr>
+                                    <th>Show</th>
+                                    <th>Episode</th>
+                                    <th>Air Date</th>
+                                </tr>
+                                </thead>
+                                % for e in upcoming:
+                                    <tr>
+                                        <td><a href="${/show/}${e.show.show_id}">${e.show.show_name}</a></td>
+                                        <td>{{ e.get_episode_name }}</td>
+                                        <td>{{ e.air_date|date:"M d, Y" }}</td>
+                                    </tr>
+                                % endfor
+                                <tbody>
+                            </table>
+                        % endif
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="shows">
+                        % if shows
+                            <table id="table_shows" class="table table-striped table-hover table-condensed">
+                                <thead>
+                                <tr>
+                                    <th>Show Name</th>
+                                    <th>First Aired</th>
+                                    <th>Is Active?</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    % for show in shows:
+                                        <tr>
+                                            <td>${show.show_name}</td>
+                                            <td>${show.first_aired}</td>
+                                            <td>${show.is_active}</td>
+                                            <td><a href="${/show/}${e.show.show_id}">Episodes</a></td>
+                                        </tr>
+                                    % endfor
+                                </tr>
+                                </tbody>
+                            </table>
+                        % endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            % if movies
+                <div class="clearfix content-heading">
+                    <h3>Movies</h3>
+                </div>
+                <table id="table_movies" class="table table-striped table-hover table-condensed">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th>
+                            <button id="btn_ignoreAll" type="button" class="btn btn-xs btn-danger">
+                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Ignore All
+                            </button>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    % for m in movies:
+                        <tr>
+                            <td><a href="#" class="omdbapi" data-omdbapi_link="${m.get_IMDB_link}"
+                                   >${m.name}</a></td>
+                            <td>
+                                <button type="button" class="btn btn-xs btn-success btn-movie" data-movie_ignore="false"
+                                        data-movie_id="${m.id}">
+                                    <span class="glyphicon glyphicon-cloud-download" aria-hidden="true"></span> Download
+                                </button>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-xs btn-danger btn-movie" data-movie_ignore="true"
+                                        data-movie_id="${m.id}">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Ignore
+                                </button>
+                            </td>
+                        </tr>
+                    % endfor
+                    </tbody>
+                </table>
+            % endif
+        </div>
+    </div>
+
+</div>
+</body>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#txt_showSearch").keypress(function (e) {
+            if (e.which == 13) {
+                e.preventDefault();
+                $("#btn_showSearch").click();
+            }
+        });
+
+        $("#table_wrapper").niceScroll();
+        $('html').niceScroll();
+
+        $("#admin_group button").slice(0, 2).click(OnAdminButtonClick)
+
+        $('.btn-movie').click(OnMovieButtonClick);
+        $("#btn_ignoreAll").click(OnIgnoreAllClick);
+        $('.omdbapi').click(OnOmdbapiClick);
+
+        $('#btn_showSearch').click(function () {
+            $.get('/manager/search',
+                    {show_search: $('#txt_showSearch').val()},
+                    function (data) {
+                        $('#results_table tbody tr').remove(); //remove all existing rows before adding
+                        var results = $.parseJSON(data)
+                        $.each(results, function (i, val) {
+                            $('#results_table tbody').append('<tr></tr>');
+                            var row = $('#results_table tr:last');
+                            $(row).append('<td>' + val.seriesname + '</td>');
+                            $(row).append('<td>' + val.firstaired + '</td>');
+                            $(row).append('<td>' + val.network + '</td>');
+                            $(row).append('<td><button type="button" class="btn btn-info btn-xs" data-seriesid="' + val.seriesid + '">Add</button></td>');
+
+                        });
+                        $('#search_results').modal();
+                        $('#results_table button').click(OnShowAddClick)
+                    })
+        });
+
+        function OnShowAddClick() {
+            var seriesid = $(this).data('seriesid');
+            $.ajax({
+                url: '/manager/addshow/',
+                data: {
+                    'seriesid': seriesid,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                beforeSend: function () {
+                    $('#search_results .btn-xs').attr('disabled', 'disabled');
+                },
+                type: 'POST',
+                error: function (req, errorString, ex) {
+                    alert(errorString)
+                },
+                success: function (data) {
+                    if (data == 'duplicate') {
+                        alert("Show show already exists");
+                        $('#search_results .btn-xs').removeAttr('disabled');
+                    }
+                    else {
+                        window.location.href = "/manager/" + seriesid
+                    }
+                }
+
+            })
+        }
+    })
+
+    function OnMovieButtonClick() {
+        var source = $(this);
+        var isIgnore = $(source).data('movie_ignore')
+        var isCleanup = $(source).text().toLowerCase().trim() == 'movie db cleanup'
+        $.ajax({
+            url: '/manager/handlemovie/',
+            data: {
+                'movieid': $(source).data('movie_id'),
+                'isignore': isIgnore,
+                'iscleanup': isCleanup,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            type: 'POST',
+            error: function (req, errorString, ex) {
+                alert(errorString)
+            },
+            success: function () {
+                if (isIgnore) {
+                    $(source).closest('tr').remove()
+                }
+                else if (isCleanup) {
+                    location.reload(true)
+                }
+                else {
+                    var currentRow = $(source).closest('tr');
+                    var newText = $(currentRow).children().first().text() + ' is downloading..'
+                    $(currentRow).children().remove();
+                    $(currentRow).append('<td colspan="3" class="success">' + newText + '</td>')
+                }
+            }
+        })
+    }
+    function OnIgnoreAllClick() {
+        $('#table_movies .btn-movie.btn-danger').each(function () {
+            $(this).click();
+        })
+        $(this).remove();
+    }
+
+    function OnAdminButtonClick() {
+        var source = $(this);
+        $.ajax({
+            url: '/manager/refresh/',
+            data: {
+                'isshowrefresh': $(source).data('admin') == 'refresh',
+                'isscan': $(source).data('admin') == 'scan',
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            type: 'POST',
+            error: function (req, errorString, ex) {
+                alert(errorString)
+                $('button, input').removeAttr('disabled');
+                $('a').removeClass('disabled_link')
+            },
+            beforeSend: function () {
+                $(source).find('.fa').addClass('fa-spin');
+                $('button, input').attr('disabled', 'disabled');
+                $('a').addClass('disabled_link');
+            },
+            success: function () {
+                var successText
+                if ($(source).data('admin') == 'refresh') {
+                    successText = 'Episodes refreshed from TVDB...';
+                }
+                else {
+                    successText = 'Scanning complete...';
+                }
+                $("#alert_admin").text(successText).show()
+                window.setTimeout(function () {
+                    location.reload(true)
+                }, 3000)
+            }
+        });
+    }
+
+    function OnOmdbapiClick() {
+        var source = $(this)
+        $.ajax({
+            url: '/manager/movie_details/',
+            data: {'omdbapiLink': $(this).data('omdbapi_link')},
+            success: function (data) {
+                if (data != 'error') {
+                    var movie = $.parseJSON(data);
+                    $(source).popover({
+                        container: 'body',
+                        placement: 'top',
+                        trigger: 'focus',
+                        html: true,
+                        title: '<a href="http://imdb.com/title/'+ movie.imdbID + '" target="_blank">' + movie.Title + '</a>',
+                        content:
+                                '<div class="row">' +
+                                '<div class="col-xs-3">' +
+                                '<img class="img-responsive img-rounded" src=' + movie.Poster + '><strong>' +
+                                '</div>' +
+                                '<div class="col-xs-9">' +
+                                '<ul class="list-unstyled">' +
+                                '<li>Ratings:</strong> IMDB <span class="badge">' + movie.imdbRating + '</span> Meta <span class="badge">' + movie.Metascore + '</span>' +
+                                '</li><li><strong>Relase Date:</strong> ' + movie.Released +
+                                '</li><li><strong>Plot:</strong> ' + movie.Plot +
+                                '</li><li><strong>Staring:</strong> ' + movie.Actors  +
+                                '</li><li><strong>Language:</strong> ' + movie.Language  +
+                                '</li></ul></div></div>'
+                    })
+                    $(source).popover('show')
+                }
+                else {
+                    alert('error')
+                }
+            }
+        });
+        return false;
+    }
+</script>
+</html>
