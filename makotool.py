@@ -1,36 +1,48 @@
-# -*- coding: utf-8 -*-
 import cherrypy
-from mako import exceptions
-from mako.template import Template
+from mako.lookup import TemplateLookup
 
-__all__ = ['MakoTool']
 
-class MakoTool(cherrypy.Tool):
+class MakoHandler(cherrypy.dispatch.LateParamPageHandler):
+    """Callable which sets response.body."""
+
+    def __init__(self, template, next_handler):
+        self.template = template
+        self.next_handler = next_handler
+
+    def __call__(self):
+        env = globals().copy()
+        env.update(self.next_handler())
+        try:
+            return self.template.render(**env)
+        except:
+            # something went wrong rendering the template
+            # this will generate a pretty error page with details
+            cherrypy.response.status = "500"
+            return exceptions.html_error_template().render()
+
+
+class MakoLoader(object):
+
     def __init__(self):
-        cherrypy.Tool.__init__(self, 'before_finalize',
-                               self._render,
-                               priority=10)
-        
-    def _render(self, template=None, debug=False):
-        """
-        Applied once your page handler has been called. It
-        looks up the template from the various template directories
-        defined in the mako plugin then renders it with
-        whatever dictionary the page handler returned.
-        """
-        if cherrypy.response.status > 399:
-            return
+        self.lookups = {}
 
-        # retrieve the data returned by the handler
-        data = cherrypy.response.body or {}
-        template = cherrypy.engine.publish("lookup-template", template).pop()
+    def __call__(self, filename, directories, module_directory=None,
+                 collection_size=-1):
+        # Find the appropriate template lookup.
+        key = (tuple(directories), module_directory)
+        try:
+            lookup = self.lookups[key]
+        except KeyError:
+            lookup = TemplateLookup(directories=directories,
+                                    module_directory=module_directory,
+                                    collection_size=collection_size,
+                                    )
+            self.lookups[key] = lookup
+        cherrypy.request.lookup = lookup
 
-        if template and isinstance(data, dict):
-            # dump the template using the dictionary
-            if debug:
-                try:
-                    cherrypy.response.body = template.render(**data)
-                except:
-                    cherrypy.response.body = exceptions.html_error_template().render()
-            else:
-                cherrypy.response.body = template.render(**data)
+        # Replace the current handler.
+        cherrypy.request.template = t = lookup.get_template(filename)
+        cherrypy.request.handler = MakoHandler(t, cherrypy.request.handler)
+
+main = MakoLoader()
+cherrypy.tools.mako = cherrypy.Tool('on_start_resource', main)

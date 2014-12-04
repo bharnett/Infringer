@@ -1,24 +1,31 @@
-import os.path
+import os, os.path
+import random
+import string
+
 import cherrypy
+from mako.template import Template
+from mako.lookup import TemplateLookup
+
+my_lookup = TemplateLookup(directories=['html'])
 
 
-class Root(object):
+class SampleApp(object):
     @cherrypy.expose
-    def index(self):
-        return {'msg': 'Hello world!'}
-        
+    def index2(self):
+        my_template = my_lookup.get_template('index2.html')
+        return my_template.render(my_name='Brian', my_world='planet of cherries')
+
+
 if __name__ == '__main__':
-    # Register the Mako plugin
-    from makoplugin import MakoTemplatePlugin
-    MakoTemplatePlugin(cherrypy.engine, base_dir=os.getcwd()).subscribe()
-
-    # Register the Mako tool
-    from makotool import MakoTool
-    cherrypy.tools.template = MakoTool()
-
-    # We must disable the encode tool because it
-    # transforms our dictionary into a list which
-    # won't be consumed by the mako tool
-    cherrypy.quickstart(Root(), '', {'/': {'tools.template.on': True,
-                                           'tools.template.template': 'index.html',
-                                           'tools.encode.on': False}})
+    conf = {
+        '/': {
+            'tools.sessions.on': True,
+            'tools.staticdir.root': os.path.abspath(os.getcwd())
+        },
+        '/static': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': './public'
+        }
+    }
+    webapp = SampleApp()
+    cherrypy.quickstart(webapp, '/', conf)
