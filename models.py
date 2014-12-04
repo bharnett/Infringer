@@ -2,12 +2,14 @@ from sqlalchemy import Column, String, Integer, ForeignKey, Date, Boolean, DateT
 from sqlalchemy.orm import relationship, backref, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import re
+import datetime
 
 Base = declarative_base()
 
+
 class Show(Base):
     __tablename__ = 'show'
-    id = Column(Integer, primary_key=True)
+    show_id = Column(Integer, primary_key=True)
     show_name = Column(String)
     first_aired = Column(Date)
     is_active = Column(Boolean, default=True)
@@ -21,8 +23,8 @@ class Show(Base):
 class Episode(Base):
     __tablename__ = 'episode'
     id = Column(Integer, primary_key=True)
-    show_id = Column(Integer, ForeignKey('show.id'))
-    show = relationship(Show, backref=backref('episodes', uselist=True))
+    show_id = Column(Integer, ForeignKey('show.show_id'))
+    show = relationship(Show, backref=backref('episodes', lazy='dynamic'))
     season_number = Column(Integer)
     episode_number = Column(Integer)
     episode_name = Column(String)
@@ -54,7 +56,7 @@ class Movie(Base):
         release_date_list = re.findall('[\(][0-9]{4}[\)]',self.name)
         s = re.sub('[\(][0-9]{4}[\)]', '', self.name)
         s = self.name.replace('(', '|').replace('Part', '|').replace('Season', '|')
-        s = s.split('|')[0].strip().replace(' ','+')
+        s = s.split('|')[0].strip().replace(' ', '+')
         if len(release_date_list) > 0:
             release_date = release_date_list[0].replace('(', '').replace(')', '')
         else:
@@ -76,6 +78,23 @@ class ActionLog(Base):
     time_stamp = Column(DateTime)
     message = Column(String)
 
+    def get_display(self):
+        return '%s -- %s' % (self.time_stamp, self.message)
+
+    @staticmethod
+    def log(msg):
+        #clean up the log file to keep it to the last 200 records
+        s = connect()
+        l = ActionLog(time_stamp=datetime.datetime.now(), message=msg)
+        s.add(l)
+
+        all_logs = s.query(ActionLog).all()
+        if len(all_logs) > 200:
+            entries_to_delete = all_logs[:50]
+            for e in entries_to_delete:
+                s.delete(e)
+        s.commit()
+                
 
 def connect():
     engine = create_engine('sqlite:///db.sqlite3')

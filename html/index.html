@@ -20,10 +20,7 @@
         }
 
         #search_group {
-            padding-top: 10px;
-            padding-left: 10px;
-            padding-right: 10px;
-            padding-bottom: 10px;
+            padding: 10px;
         }
 
         .disabled_link {
@@ -127,7 +124,7 @@
                 </div>
                 <div class="tab-content">
                     <div role="tabpanel" class="tab-pane active" id="upcoming">
-                        % if upcoming
+                        % if upcoming:
                             <table id="table_shows" class="table table-striped table-hover table-condensed">
                                 <thead>
                                 <tr>
@@ -138,9 +135,9 @@
                                 </thead>
                                 % for e in upcoming:
                                     <tr>
-                                        <td><a href="${/show/}${e.show.show_id}">${e.show.show_name}</a></td>
-                                        <td>{{ e.get_episode_name }}</td>
-                                        <td>{{ e.air_date|date:"M d, Y" }}</td>
+                                        <td><a href="/show/${e.show.show_id}">${e.show.show_name}</a></td>
+                                        <td>${e.get_episode_name()}</td>
+                                        <td>${e.air_date.strftime("%m/%d/%Y")}</td>
                                     </tr>
                                 % endfor
                                 <tbody>
@@ -148,7 +145,7 @@
                         % endif
                     </div>
                     <div role="tabpanel" class="tab-pane" id="shows">
-                        % if shows
+                        % if shows:
                             <table id="table_shows" class="table table-striped table-hover table-condensed">
                                 <thead>
                                 <tr>
@@ -159,16 +156,14 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr>
                                     % for show in shows:
                                         <tr>
                                             <td>${show.show_name}</td>
                                             <td>${show.first_aired}</td>
                                             <td>${show.is_active}</td>
-                                            <td><a href="${/show/}${e.show.show_id}">Episodes</a></td>
+                                            <td><a href="/show/${e.show.show_id}">Episodes</a></td>
                                         </tr>
                                     % endfor
-                                </tr>
                                 </tbody>
                             </table>
                         % endif
@@ -179,7 +174,7 @@
     </div>
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
-            % if movies
+            % if movies:
                 <div class="clearfix content-heading">
                     <h3>Movies</h3>
                 </div>
@@ -234,18 +229,18 @@
         $("#table_wrapper").niceScroll();
         $('html').niceScroll();
 
-        $("#admin_group button").slice(0, 2).click(OnAdminButtonClick)
+        $("#admin_group button").slice(0, 2).click(OnAdminButtonClick);
 
         $('.btn-movie').click(OnMovieButtonClick);
         $("#btn_ignoreAll").click(OnIgnoreAllClick);
         $('.omdbapi').click(OnOmdbapiClick);
 
         $('#btn_showSearch').click(function () {
-            $.get('/manager/search',
+            $.get('/search',
                     {show_search: $('#txt_showSearch').val()},
                     function (data) {
                         $('#results_table tbody tr').remove(); //remove all existing rows before adding
-                        var results = $.parseJSON(data)
+                        var results = $.parseJSON(data);
                         $.each(results, function (i, val) {
                             $('#results_table tbody').append('<tr></tr>');
                             var row = $('#results_table tr:last');
@@ -256,21 +251,21 @@
 
                         });
                         $('#search_results').modal();
-                        $('#results_table button').click(OnShowAddClick)
+                        $('#results_table button').click(OnShowAddClick);
                     })
         });
 
         function OnShowAddClick() {
             var seriesid = $(this).data('seriesid');
+            var data = {'seriesid': seriesid}
             $.ajax({
-                url: '/manager/addshow/',
-                data: {
-                    'seriesid': seriesid,
-                    'csrfmiddlewaretoken': '{{ csrf_token }}'
-                },
+                url: '/add_show',
+                data: JSON.stringify(data),
                 beforeSend: function () {
                     $('#search_results .btn-xs').attr('disabled', 'disabled');
                 },
+                dataType: 'text',
+                contentType: 'application/json',
                 type: 'POST',
                 error: function (req, errorString, ex) {
                     alert(errorString)
@@ -281,20 +276,20 @@
                         $('#search_results .btn-xs').removeAttr('disabled');
                     }
                     else {
-                        window.location.href = "/manager/" + seriesid
+                        window.location.href = "/show/" + seriesid
                     }
                 }
 
             })
         }
-    })
+    });
 
     function OnMovieButtonClick() {
         var source = $(this);
-        var isIgnore = $(source).data('movie_ignore')
-        var isCleanup = $(source).text().toLowerCase().trim() == 'movie db cleanup'
+        var isIgnore = $(source).data('movie_ignore');
+        var isCleanup = $(source).text().toLowerCase().trim() == 'movie db cleanup';
         $.ajax({
-            url: '/manager/handlemovie/',
+            url: '/handlemovie/',
             data: {
                 'movieid': $(source).data('movie_id'),
                 'isignore': isIgnore,
@@ -314,7 +309,7 @@
                 }
                 else {
                     var currentRow = $(source).closest('tr');
-                    var newText = $(currentRow).children().first().text() + ' is downloading..'
+                    var newText = $(currentRow).children().first().text() + ' is downloading..';
                     $(currentRow).children().remove();
                     $(currentRow).append('<td colspan="3" class="success">' + newText + '</td>')
                 }
@@ -324,14 +319,14 @@
     function OnIgnoreAllClick() {
         $('#table_movies .btn-movie.btn-danger').each(function () {
             $(this).click();
-        })
+        });
         $(this).remove();
     }
 
     function OnAdminButtonClick() {
         var source = $(this);
         $.ajax({
-            url: '/manager/refresh/',
+            url: '/refresh/',
             data: {
                 'isshowrefresh': $(source).data('admin') == 'refresh',
                 'isscan': $(source).data('admin') == 'scan',
@@ -339,7 +334,7 @@
             },
             type: 'POST',
             error: function (req, errorString, ex) {
-                alert(errorString)
+                alert(errorString);
                 $('button, input').removeAttr('disabled');
                 $('a').removeClass('disabled_link')
             },
@@ -349,14 +344,14 @@
                 $('a').addClass('disabled_link');
             },
             success: function () {
-                var successText
+                var successText;
                 if ($(source).data('admin') == 'refresh') {
                     successText = 'Episodes refreshed from TVDB...';
                 }
                 else {
                     successText = 'Scanning complete...';
                 }
-                $("#alert_admin").text(successText).show()
+                $("#alert_admin").text(successText).show();
                 window.setTimeout(function () {
                     location.reload(true)
                 }, 3000)
@@ -365,9 +360,9 @@
     }
 
     function OnOmdbapiClick() {
-        var source = $(this)
+        var source = $(this);
         $.ajax({
-            url: '/manager/movie_details/',
+            url: '/movie_details/',
             data: {'omdbapiLink': $(this).data('omdbapi_link')},
             success: function (data) {
                 if (data != 'error') {
@@ -391,7 +386,7 @@
                                 '</li><li><strong>Staring:</strong> ' + movie.Actors  +
                                 '</li><li><strong>Language:</strong> ' + movie.Language  +
                                 '</li></ul></div></div>'
-                    })
+                    });
                     $(source).popover('show')
                 }
                 else {

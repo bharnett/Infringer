@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Log</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Optional theme
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap-theme.min.css">-->
+
+    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery.nicescroll/3.5.1/jquery.nicescroll.min.js"></script>
+    <style type="text/css">
+        #table_wrapper {
+            overflow: auto;
+            height: 650px
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            <div class="form-inline" style="padding: 10px">
+                <div class="form-group">
+                    <a class="btn btn-default" role="button" href="/index/">
+                        <i class="fa fa-home"></i> home</a>
+
+                    <h3>Logging!</h3>
+                </div>
+            </div>
+
+
+            <div id="table_wrapper" class="well">
+                % if log:
+                    <ul class="list-group">
+                    %for l in log:
+                    <li class="list-group-item"><samp>${l.get_display()}</samp></li>
+                    %endfor
+                    </ul>
+                % endif
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script type="javascript">
+    $(document).ready(function () {
+        $('#container-fluid').niceScroll();
+    })
+
+</script>
+</html>
