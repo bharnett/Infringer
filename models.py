@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Integer, ForeignKey, Date, Boolean, DateTime, create_engine
-from sqlalchemy.orm import relationship, backref, sessionmaker
+from sqlalchemy.orm import relationship, backref, sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
+
 import re
 import datetime
 
@@ -24,7 +25,7 @@ class Episode(Base):
     __tablename__ = 'episode'
     id = Column(Integer, primary_key=True)
     show_id = Column(Integer, ForeignKey('show.show_id'))
-    show = relationship(Show, backref=backref('episodes', lazy='dynamic'))
+    show = relationship(Show, backref=backref('episodes', cascade='delete', lazy='dynamic'))
     season_number = Column(Integer)
     episode_number = Column(Integer)
     episode_name = Column(String)
@@ -68,7 +69,7 @@ class MovieURL(Base):
     __tablename__ = 'movieurl'
     id = Column(Integer, primary_key=True)
     movie_id = Column(Integer, ForeignKey('movie.id'))
-    movie = relationship(Movie, backref=backref('movieurls', uselist=True))
+    movie = relationship(Movie, backref=backref('movieurls', cascade='delete', lazy='dynamic'))
     url = Column(String)
 
 
@@ -94,12 +95,27 @@ class ActionLog(Base):
             for e in entries_to_delete:
                 s.delete(e)
         s.commit()
-                
 
+
+class Config(Base):
+    __tablename__ = 'config'
+    id = Column(Integer, primary_key=True)
+    tp_username = Column(String, default='')
+    tp_password = Column(String, default='')
+    tp_login_page = Column(String, default='http://tehparadox.com/forum/') #'http://tehparadox.com/forum/'
+    crawljob_directory = Column(String, default='')
+    tv_parent_directory = Column(String, default='')
+    movies_directory = Column(String, default='')
+    file_host_domain = Column(String, default='uploaded.net') #'uploaded.net'
+    hd_format = Column(String, default='720p') # only 720p or 1080p
+    ip = Column(String, default='127.0.0.1')
+    port = Column(String, default='8080')
+
+    #http://docs.sqlalchemy.org/en/rel_0_9/dialects/sqlite.html
 def connect():
-    engine = create_engine('sqlite:///db.sqlite3')
-    session = sessionmaker()
-    session.configure(bind=engine)
+    engine = create_engine('sqlite:///db.sqlite3', connect_args={'check_same_thread':False})
+    session_factory = sessionmaker()
+    session_factory.configure(bind=engine)
     Base.metadata.create_all(engine)
-    s = session()
+    s = scoped_session(session_factory)
     return s

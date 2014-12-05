@@ -27,7 +27,7 @@
             pointer-events: none;
         }
 
-        .popover{
+        .popover {
             max-width: 600px;
         }
 
@@ -100,6 +100,11 @@
                     </a>
                 </div>
                 <div class="btn-group" role="group">
+                    <a href="/config/" class="btn btn-info">
+                        <span class="glyphicon glyphicon-list-alt"></span> Config
+                    </a>
+                </div>
+                <div class="btn-group" role="group">
                     <button type="button" class="btn btn-danger btn-movie" data-movie_ignore="false" data-movie_id="0">
                         <span class="glyphicon glyphicon-flash"></span> Movie DB Cleanup
                     </button>
@@ -137,7 +142,11 @@
                                     <tr>
                                         <td><a href="/show/${e.show.show_id}">${e.show.show_name}</a></td>
                                         <td>${e.get_episode_name()}</td>
-                                        <td>${e.air_date.strftime("%m/%d/%Y")}</td>
+                                        <td>
+                                        % if e.air_date:
+                                            ${e.air_date.strftime("%m/%d/%Y")}
+                                        % endif
+                                        </td>
                                     </tr>
                                 % endfor
                                 <tbody>
@@ -161,7 +170,7 @@
                                             <td>${show.show_name}</td>
                                             <td>${show.first_aired}</td>
                                             <td>${show.is_active}</td>
-                                            <td><a href="/show/${e.show.show_id}">Episodes</a></td>
+                                            <td><a href="/show/${show.show_id}">Episodes</a></td>
                                         </tr>
                                     % endfor
                                 </tbody>
@@ -191,24 +200,27 @@
                     </tr>
                     </thead>
                     <tbody>
-                    % for m in movies:
-                        <tr>
-                            <td><a href="#" class="omdbapi" data-omdbapi_link="${m.get_IMDB_link}"
-                                   >${m.name}</a></td>
-                            <td>
-                                <button type="button" class="btn btn-xs btn-success btn-movie" data-movie_ignore="false"
-                                        data-movie_id="${m.id}">
-                                    <span class="glyphicon glyphicon-cloud-download" aria-hidden="true"></span> Download
-                                </button>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-xs btn-danger btn-movie" data-movie_ignore="true"
-                                        data-movie_id="${m.id}">
-                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Ignore
-                                </button>
-                            </td>
-                        </tr>
-                    % endfor
+                        % for m in movies:
+                            <tr>
+                                <td><a href="#" class="omdbapi" data-movie_id="${m.id}"
+                                        >${m.name}</a></td>
+                                <td>
+                                    <button type="button" class="btn btn-xs btn-success btn-movie"
+                                            data-movie_ignore="false"
+                                            data-movie_id="${m.id}">
+                                        <span class="glyphicon glyphicon-cloud-download" aria-hidden="true"></span>
+                                        Download
+                                    </button>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-xs btn-danger btn-movie"
+                                            data-movie_ignore="true"
+                                            data-movie_id="${m.id}">
+                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span> Ignore
+                                    </button>
+                                </td>
+                            </tr>
+                        % endfor
                     </tbody>
                 </table>
             % endif
@@ -288,14 +300,16 @@
         var source = $(this);
         var isIgnore = $(source).data('movie_ignore');
         var isCleanup = $(source).text().toLowerCase().trim() == 'movie db cleanup';
+
         $.ajax({
-            url: '/handlemovie/',
-            data: {
+            url: '/handle_movie',
+            data: JSON.stringify({
                 'movieid': $(source).data('movie_id'),
                 'isignore': isIgnore,
-                'iscleanup': isCleanup,
-                'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
+                'iscleanup': isCleanup
+            }),
+            dataType: 'text',
+            contentType: 'application/json',
             type: 'POST',
             error: function (req, errorString, ex) {
                 alert(errorString)
@@ -326,12 +340,13 @@
     function OnAdminButtonClick() {
         var source = $(this);
         $.ajax({
-            url: '/refresh/',
-            data: {
+            url: '/refresh',
+            data: JSON.stringify({
                 'isshowrefresh': $(source).data('admin') == 'refresh',
-                'isscan': $(source).data('admin') == 'scan',
-                'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
+                'isscan': $(source).data('admin') == 'scan'
+            }),
+            dataType: 'text',
+            contentType: 'application/json',
             type: 'POST',
             error: function (req, errorString, ex) {
                 alert(errorString);
@@ -363,7 +378,9 @@
         var source = $(this);
         $.ajax({
             url: '/movie_details/',
-            data: {'omdbapiLink': $(this).data('omdbapi_link')},
+            dataType: 'text',
+            contentType: 'application/json',
+            data: {'movie_id': $(this).data('movie_id')},
             success: function (data) {
                 if (data != 'error') {
                     var movie = $.parseJSON(data);
@@ -372,9 +389,8 @@
                         placement: 'top',
                         trigger: 'focus',
                         html: true,
-                        title: '<a href="http://imdb.com/title/'+ movie.imdbID + '" target="_blank">' + movie.Title + '</a>',
-                        content:
-                                '<div class="row">' +
+                        title: '<a href="http://imdb.com/title/' + movie.imdbID + '" target="_blank">' + movie.Title + '</a>',
+                        content: '<div class="row">' +
                                 '<div class="col-xs-3">' +
                                 '<img class="img-responsive img-rounded" src=' + movie.Poster + '><strong>' +
                                 '</div>' +
@@ -383,8 +399,8 @@
                                 '<li>Ratings:</strong> IMDB <span class="badge">' + movie.imdbRating + '</span> Meta <span class="badge">' + movie.Metascore + '</span>' +
                                 '</li><li><strong>Relase Date:</strong> ' + movie.Released +
                                 '</li><li><strong>Plot:</strong> ' + movie.Plot +
-                                '</li><li><strong>Staring:</strong> ' + movie.Actors  +
-                                '</li><li><strong>Language:</strong> ' + movie.Language  +
+                                '</li><li><strong>Staring:</strong> ' + movie.Actors +
+                                '</li><li><strong>Language:</strong> ' + movie.Language +
                                 '</li></ul></div></div>'
                     });
                     $(source).popover('show')

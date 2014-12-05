@@ -2,9 +2,7 @@
 <html>
 <head lang="en">
     <meta charset="UTF-8">
-    <title></title>
-    <meta charset="UTF-8">
-    <title></title>
+    <title>${show.show_name}</title>
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
@@ -36,9 +34,9 @@
                     <span class="sr-only">Toggle Dropdown</span>
                 </button>
                 <ul class="dropdown-menu" role="menu">
-                    <li><a id="btn_refresh" data-show_id="{{ show.show_id }}" href="#"><span
+                    <li><a id="btn_refresh" data-show_id="${show.show_id}" href="#"><span
                             class="glyphicon glyphicon-refresh"></span> Refresh Episodes</a></li>
-                    <li><a id="btn_remove" data-show_id="{{ show.show_id }}" href="#"><span
+                    <li><a id="btn_remove" data-show_id="${show.show_id}" href="#"><span
                             class="glyphicon glyphicon-remove"></span> Remove</a></li>
                 </ul>
             </div>
@@ -62,7 +60,11 @@
                         <td>${e.season_number}</td>
                         <td>${e.episode_number}</td>
                         <td>${e.get_episode_name()}</td>
-                        <td>${e.air_date.strftime("%m/%d/%Y")}</td>
+                        <td>
+                            % if e.air_date:
+                                ${e.air_date.strftime("%m/%d/%Y")}
+                            % endif
+                        </td>
                         <td>
                             % if e.status == 'Retrieved':
                                 <button type="button" class="retriever btn btn-success" data-episode_id="${e.id}">
@@ -100,12 +102,13 @@
         var source = $(this);
         var sourceVal = $(source).html().toLowerCase();
         $.ajax({
-            url: '/manager/updateepisode/',
-            data: {
+            url: '/update_episode',
+            data: JSON.stringify({
                 'episodeid': $(source).data('episode_id'),
-                'changeto': (sourceVal == 'not retrieved' || sourceVal == 'retrieved' ? 'Pending' : 'Not Retrieved'),
-                'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
+                'changeto': (sourceVal == 'not retrieved' || sourceVal == 'retrieved' ? 'Pending' : 'Retrieved')
+            }),
+            dataType: 'text',
+            contentType: 'application/json',
             type: 'POST',
             error: function (req, errorString, ex) {
                 alert(errorString)
@@ -133,12 +136,13 @@
         var source = $(this);
         var action = $(source).attr('id').replace('btn_', '')
         $.ajax({
-            url: '/manager/update_show/',
-            data: {
+            url: '/update_show',
+            dataType: 'text',
+            contentType: 'application/json',
+            data: JSON.stringify({
                 'showid': $(source).data('show_id'),
-                'action': action,
-                'csrfmiddlewaretoken': '{{ csrf_token }}'
-            },
+                'action': action
+            }),
             type: 'POST',
             error: function (req, errorString, ex) {
                 alert(errorString)
@@ -151,7 +155,7 @@
                     alert("Error");
                 }
                 else {
-                    action == 'refresh' ? window.location.reload(true) : window.location.href = "/manager/";
+                    action == 'refresh' ? window.location.reload(true) : window.location.href = "/index";
                 }
             }
         });
