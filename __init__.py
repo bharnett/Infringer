@@ -5,6 +5,8 @@ from models import Show, Episode, Movie, MovieURL, ActionLog, ScanURL
 import models
 import json
 import cherrypy
+import urllib
+from urllib import request
 from mako.template import Template
 from mako.lookup import TemplateLookup
 from staticsettings import SETTINGS
@@ -84,6 +86,121 @@ class Infringer(object):
                 # http://stackoverflow.com/questions/7753073/jquery-ajax-post-to-django-view
         except Exception as ex:
             # logger.exception(ex)
+            status = 'error'
+
+        return json.dumps(status)
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def refresh(self):
+        status = 'success'
+        try:
+            data = cherrypy.request.json
+            is_show_refresh = data['isshowrefresh']
+            is_scan = data['isscan']
+
+            if is_scan:
+                #LinkRetrieve.getepisodes()
+
+            if is_show_refresh:
+                #Utils.UpdateAll()
+
+        except Exception as ex:
+            ActionLog.ActionLog(ex)
+            status = 'error'
+
+        return json.dumps(status)
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def update_show(self):
+        status = 'success'
+        try:
+            data = cherrypy.request.json
+            show_id = data['showid']
+            action = data['action']
+
+            if action == 'refresh':
+                #Utils.AddEpisodes(show_id)
+
+            if action == 'remove':
+                db = models.connect()
+                s = db.query(Show).filter(Show.show_id == show_id)
+                # for e in s.episode_set:
+                #    e.delete
+                #remove all episodes since there is no cascade
+                ActionLog.log('"%s" removed.' % s.show_name)
+                s.delete()
+
+        except Exception as ex:
+            # logger.exception(ex)
+            status = 'error'
+
+        return json.dumps(status)
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def handlemovie(self):
+        status = 'success'
+        try:
+            data = cherrypy.request.json
+            movie_id = data['movieid']
+            is_ignore = data['isignore']
+            is_cleanup = ['iscleanup']
+            db = models.connect()
+
+            if is_cleanup:
+                for ignored_movie in db.query(Movie).filter(Movie.status == 'Ignored').all():
+                    ignored_movie.delete()
+                    # logger.info('Movie DB cleanup completed')
+            else:
+                m = db.query(Movie).filter(Movie.id == movie_id)
+                if is_ignore:
+                    m.status = 'Ignored'
+                else:
+                    jdownloader_string = ''
+                    for l in m.movieurls.all():
+                        jdownloader_string += l.url + ' '
+                    #LinkRetrieve.write_crawljob_file(m.name, SETTINGS.movies_directory, jdownloader_string)
+                    ActionLog.log('"%s\'s" .crawljob file created.' % m.name)
+                    m.status = 'Retrieved'
+                m.save()
+        except Exception as ex:
+            # logger.exception(ex)
+            status = 'error'
+
+        return json.dumps(status)
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def movie_details(self):
+        status = 'success'
+        try:
+            data = cherrypy.request.json
+
+            ombdapi_link = data['omdbapiLink']
+            parsed = urllib.parse.urlparse(ombdapi_link)
+            urllib.parse.urlparse(parsed.query)
+            mdb_url_param = '%s_%s' % (urllib.parse.quote_plus(urllib.parse.parse_qs(parsed.query)['t'][0]), urllib.parse.parse_qs(parsed.query)['y'][0])
+            mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % mdb_url_param
+            mdb_response = urllib.request.urlopen(mdb_link)
+            mdb_json = mdb_response.read()
+            mdb_json_string = bytes.decode(mdb_json)
+            mdb_data = json.loads(mdb_json_string)
+            new_img = 'http://image.tmdb.org/t/p/w154' + mdb_data['results'][0]['poster_path']
+
+            ombdapi_resp = urllib.request.urlopen(ombdapi_link)
+            ombdapi_json = json.loads(bytes.decode(ombdapi_resp.read()))
+            ombdapi_json['Poster'] = new_img
+
+            status = ombdapi_json
+
+        except Exception as ex:
             status = 'error'
 
         return json.dumps(status)
