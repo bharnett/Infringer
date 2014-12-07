@@ -61,10 +61,11 @@ class Movie(Base):
     status = Column(String, default='Not Retrieved')
 
     def get_IMDB_link(self):
-        release_date_list = re.findall('[\(][0-9]{4}[\)]',self.name)
-        s = re.sub('[\(][0-9]{4}[\)]', '', self.name)
+        release_date_list = re.findall('[\(]?[0-9]{4}[\)]?',self.name)
+        #s = re.sub('[\(][0-9]{4}[\)]', '', self.name)
         s = self.name.replace('(', '|').replace('Part', '|').replace('Season', '|')
-        s = s.split('|')[0].strip().replace(' ', '+')
+        s = s.split('|')[0].strip()
+        s = re.split('[\(]?[0-9]{4}[\)]?', s)[0].strip().replace(' ', '+')
         if len(release_date_list) > 0:
             release_date = release_date_list[0].replace('(', '').replace(')', '')
         else:

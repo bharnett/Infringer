@@ -113,10 +113,14 @@ def search_sites(list_of_shows):
                             movie_soup = movie_response.soup
                             movie_links = get_download_links(movie_soup, config, source.domain, '1080p')
 
-                            for m in movie_links:
-                                db.add(MovieURL(url=m, movie=movie))
-                                # movie.append(MovieURL(url=m))
-                            movie.status = "Ready"
+                            if len(movie_links) == 0 or movie.name.strip() == '':
+                                db.query(Movie).filter(Movie.id == movie.id).delete()
+                            else:
+                                for m in movie_links:
+                                    db.add(MovieURL(url=m, movie=movie))
+                                    db.commit()
+                                    # movie.append(MovieURL(url=m))
+                                movie.status = "Ready"
                             db.commit()
 
 

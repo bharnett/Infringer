@@ -143,9 +143,9 @@
                                         <td><a href="/show/${e.show.show_id}">${e.show.show_name}</a></td>
                                         <td>${e.get_episode_name()}</td>
                                         <td>
-                                        % if e.air_date:
+                                            % if e.air_date:
                                             ${e.air_date.strftime("%m/%d/%Y")}
-                                        % endif
+                                            % endif
                                         </td>
                                     </tr>
                                 % endfor
@@ -183,7 +183,7 @@
     </div>
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
-            % if movies:
+            % if len(movies) > 0:
                 <div class="clearfix content-heading">
                     <h3>Movies</h3>
                 </div>
@@ -314,19 +314,26 @@
             error: function (req, errorString, ex) {
                 alert(errorString)
             },
-            success: function () {
-                if (isIgnore) {
-                    $(source).closest('tr').remove()
-                }
-                else if (isCleanup) {
-                    location.reload(true)
+            success: function (data) {
+                var ar = $.parseJSON($.parseJSON(data));
+                if (ar.status == 'success') {
+                    if (isIgnore) {
+                        $(source).closest('tr').remove()
+                    }
+                    else if (isCleanup) {
+                        location.reload(true)
+                    }
+                    else {
+                        var currentRow = $(source).closest('tr');
+                        var newText = $(currentRow).children().first().text() + ' is downloading..';
+                        $(currentRow).children().remove();
+                        $(currentRow).append('<td colspan="3" class="success">' + newText + '</td>')
+                    }
                 }
                 else {
-                    var currentRow = $(source).closest('tr');
-                    var newText = $(currentRow).children().first().text() + ' is downloading..';
-                    $(currentRow).children().remove();
-                    $(currentRow).append('<td colspan="3" class="success">' + newText + '</td>')
+                    alert(ar.status + ' - ' + ar.message);
                 }
+
             }
         })
     }

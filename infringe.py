@@ -29,7 +29,7 @@ class Infringer(object):
             upcoming_episodes = s.query(Episode).filter(Episode.air_date != None).filter(
                 Episode.status == 'Pending').order_by(Episode.air_date)[:25]
             index_shows = s.query(Show).order_by(Show.show_name)
-            index_movies = s.query(Movie).filter(Movie.status == 'Ready')
+            index_movies = s.query(Movie).filter(Movie.status == 'Ready').all()
             return index_template.render(shows=index_shows, movies=index_movies, upcoming=upcoming_episodes)
 
     @cherrypy.expose
@@ -195,7 +195,7 @@ class Infringer(object):
             is_scan = data['isscan']
 
             if is_scan:
-                LinkRetrieve.get_episodes()
+                LinkRetrieve.handle_downloads()
 
             if is_show_refresh:
                 Utils.update_all()
@@ -210,7 +210,7 @@ class Infringer(object):
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
     def handle_movie(self):
-        status = 'success'
+        ar = AjaxResponse('Movie downloading...')
         try:
             data = cherrypy.request.json
             movie_id = data['movieid']
@@ -219,9 +219,9 @@ class Infringer(object):
             db = models.connect()
 
             if is_cleanup:
-                for ignored_movie in db.query(Movie).filter(Movie.status == 'Ignored').all():
-                    ignored_movie.delete()
-                    # logger.info('Movie DB cleanup completed')
+                db.query(Movie).filter(Movie.status == 'Ignored').delete()
+                db.commit()
+                ActionLog.log("DB cleanup completed")
             else:
                 m = db.query(Movie).filter(Movie.id == movie_id).first()
                 if is_ignore:
@@ -233,12 +233,13 @@ class Infringer(object):
                     LinkRetrieve.write_crawljob_file(m.name, config.movies_directory, jdownloader_string, config.crawljob_directory)
                     ActionLog.log('"%s\'s" .crawljob file created.' % m.name)
                     m.status = 'Retrieved'
-            db.commit()
+                db.commit()
         except Exception as ex:
-            # logger.exception(ex)
-            status = 'error'
+            ActionLog.log('error - ' + ex)
+            ar.status = 'error'
+            ar.message = ex
 
-        return json.dumps(status)
+        return ar.to_JSON()
 
 
     @cherrypy.expose
@@ -262,9 +263,13 @@ class Infringer(object):
             mdb_data = json.loads(mdb_json_string)
             ombdapi_resp = urllib.request.urlopen(omdb_api_link)
             ombdapi_json = json.loads(bytes.decode(ombdapi_resp.read()))
-            if len(mdb_data) > 0:
-                new_img = 'http://image.tmdb.org/t/p/w154' + mdb_data['results'][0]['poster_path']
-                ombdapi_json['Poster'] = new_img
+            try:
+                if len(mdb_data) > 0:
+                    new_img = 'http://image.tmdb.org/t/p/w154' + mdb_data['results'][0]['poster_path']
+            except Exception as ex:
+                new_img = 'http://146990c1ab4c59b8bbd0-13f1a0753bafdde5bf7ad71d7d5a2da6.r94.cf1.rackcdn.com/techdiff.jpg'
+
+            ombdapi_json['Poster'] = new_img
 
             status = ombdapi_json
 
