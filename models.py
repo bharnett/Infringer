@@ -42,8 +42,15 @@ class Episode(Base):
 class ScanURL(Base):
     __tablename__ = 'scanurl'
     id = Column(Integer, primary_key=True)
-    url = Column(String)
+    username = Column(String, default='myusername')
+    password = Column(String, default='mypassword')
+    login_page = Column(String, default='http://tehparadox.com/forum/') #'http://tehparadox.com/forum/'
+    url = Column(String, default='myurl')
+    media_type = Column(String, default='both') #can be tv, movies, or both
     priority = Column(Integer, nullable=True)
+    link_select = Column(String, default='a')
+    max_search_links = Column(Integer, default=300)
+    domain = Column(String, default='http://www.domain.com/')
 
 
 class Movie(Base):
