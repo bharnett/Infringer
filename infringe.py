@@ -294,13 +294,10 @@ if __name__ == '__main__':
     db = models.connect()
     config = db.query(models.Config).first()
 
-    if config is not None:
-        # cherrypy.server.socket_host = config.ip
-        # cherrypy.server.socket_port = config.port
-
-        cherrypy.config.update({
-            'server.socket_host': config.ip,
-            'server.socket_port': int(config.port),
-        })
+    # if config is not None:
+        # cherrypy.config.update({
+        #     'server.socket_host': config.ip,
+        #     'server.socket_port': int(config.port),
+        # })
     my_infringer = Infringer()
     cherrypy.quickstart(my_infringer, '/', conf)

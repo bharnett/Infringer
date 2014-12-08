@@ -3,17 +3,7 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>User Configuration</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
-    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
-    <!-- Optional theme
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap-theme.min.css">-->
-
-    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery.nicescroll/3.5.1/jquery.nicescroll.min.js"></script>
-    <style type="text/css">
-
-    </style>
+    <%include file="base.html"/>
 </head>
 <body>
 <div class="container-fluid">
@@ -217,16 +207,11 @@
                 dataType: 'text',
                 contentType: 'application/json',
                 error: function (jqXHR, textStatus, errorThrown) {
-                    alert('ERROR: ' + textStatus + ' ' + errorThrown);
+                    showStatus(true, textStatus + ' ' + errorThrown);
                 },
                 success: function (data) {
                     var ar = $.parseJSON($.parseJSON(data));
-                    if (ar.status == 'success') {
-                        $('#config_alert').text(ar.message).show();
-                    }
-                    else {
-                        alert(ar.status + ' - ' + ar.message);
-                    }
+                    showStatus(ar.status == 'error', ar.message);
                 }
             });
             e.preventDefault();

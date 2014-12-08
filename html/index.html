@@ -2,16 +2,9 @@
 <html>
 <head lang="en">
     <meta charset="UTF-8">
-    <title></title>
+    <title>Infringer</title>
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
-    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
-    <!-- Optional theme
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap-theme.min.css">-->
-
-    <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery.nicescroll/3.5.1/jquery.nicescroll.min.js"></script>
+    <%include file="base.html"/>
 
     <style type="text/css">
         #table_wrapper {
@@ -230,194 +223,196 @@
 </div>
 </body>
 <script type="text/javascript">
-    $(document).ready(function () {
-        $("#txt_showSearch").keypress(function (e) {
-            if (e.which == 13) {
-                e.preventDefault();
-                $("#btn_showSearch").click();
-            }
-        });
-
-        $("#table_wrapper").niceScroll();
-        $('html').niceScroll();
-
-        $("#admin_group button").slice(0, 2).click(OnAdminButtonClick);
-
-        $('.btn-movie').click(OnMovieButtonClick);
-        $("#btn_ignoreAll").click(OnIgnoreAllClick);
-        $('.omdbapi').click(OnOmdbapiClick);
-
-        $('#btn_showSearch').click(function () {
-            $.get('/search',
-                    {show_search: $('#txt_showSearch').val()},
-                    function (data) {
-                        $('#results_table tbody tr').remove(); //remove all existing rows before adding
-                        var results = $.parseJSON(data);
-                        $.each(results, function (i, val) {
-                            $('#results_table tbody').append('<tr></tr>');
-                            var row = $('#results_table tr:last');
-                            $(row).append('<td>' + val.seriesname + '</td>');
-                            $(row).append('<td>' + val.firstaired + '</td>');
-                            $(row).append('<td>' + val.network + '</td>');
-                            $(row).append('<td><button type="button" class="btn btn-info btn-xs" data-seriesid="' + val.seriesid + '">Add</button></td>');
-
-                        });
-                        $('#search_results').modal();
-                        $('#results_table button').click(OnShowAddClick);
-                    })
-        });
-
-        function OnShowAddClick() {
-            var seriesid = $(this).data('seriesid');
-            var data = {'seriesid': seriesid}
-            $.ajax({
-                url: '/add_show',
-                data: JSON.stringify(data),
-                beforeSend: function () {
-                    $('#search_results .btn-xs').attr('disabled', 'disabled');
-                },
-                dataType: 'text',
-                contentType: 'application/json',
-                type: 'POST',
-                error: function (req, errorString, ex) {
-                    alert(errorString)
-                },
-                success: function (data) {
-                    if (data == 'duplicate') {
-                        alert("Show show already exists");
-                        $('#search_results .btn-xs').removeAttr('disabled');
-                    }
-                    else {
-                        window.location.href = "/show/" + seriesid
-                    }
-                }
-
-            })
+$(document).ready(function () {
+    $("#txt_showSearch").keypress(function (e) {
+        if (e.which == 13) {
+            e.preventDefault();
+            $("#btn_showSearch").click();
         }
     });
 
-    function OnMovieButtonClick() {
-        var source = $(this);
-        var isIgnore = $(source).data('movie_ignore');
-        var isCleanup = $(source).text().toLowerCase().trim() == 'movie db cleanup';
+    $("#table_wrapper").niceScroll();
+    $('html').niceScroll();
 
+    $("#admin_group button").slice(0, 2).click(OnAdminButtonClick);
+
+    $('.btn-movie').click(OnMovieButtonClick);
+    $("#btn_ignoreAll").click(OnIgnoreAllClick);
+    $('.omdbapi').click(OnOmdbapiClick);
+
+    $('#btn_showSearch').click(function () {
+        $.get('/search',
+                {show_search: $('#txt_showSearch').val()},
+                function (data) {
+                    $('#results_table tbody tr').remove(); //remove all existing rows before adding
+                    var results = $.parseJSON(data);
+                    $.each(results, function (i, val) {
+                        $('#results_table tbody').append('<tr></tr>');
+                        var row = $('#results_table tr:last');
+                        $(row).append('<td>' + val.seriesname + '</td>');
+                        $(row).append('<td>' + val.firstaired + '</td>');
+                        $(row).append('<td>' + val.network + '</td>');
+                        $(row).append('<td><button type="button" class="btn btn-info btn-xs" data-seriesid="' + val.seriesid + '">Add</button></td>');
+
+                    });
+                    $('#search_results').modal();
+                    $('#results_table button').click(OnShowAddClick);
+                })
+    });
+
+    function OnShowAddClick() {
+        var seriesid = $(this).data('seriesid');
+        var data = {'seriesid': seriesid}
         $.ajax({
-            url: '/handle_movie',
-            data: JSON.stringify({
-                'movieid': $(source).data('movie_id'),
-                'isignore': isIgnore,
-                'iscleanup': isCleanup
-            }),
+            url: '/add_show',
+            data: JSON.stringify(data),
+            beforeSend: function () {
+                $('#search_results .btn-xs').attr('disabled', 'disabled');
+            },
             dataType: 'text',
             contentType: 'application/json',
             type: 'POST',
             error: function (req, errorString, ex) {
-                alert(errorString)
+                showStatus(true, errorString)
             },
             success: function (data) {
-                var ar = $.parseJSON($.parseJSON(data));
-                if (ar.status == 'success') {
-                    if (isIgnore) {
-                        $(source).closest('tr').remove()
-                    }
-                    else if (isCleanup) {
-                        location.reload(true)
-                    }
-                    else {
-                        var currentRow = $(source).closest('tr');
-                        var newText = $(currentRow).children().first().text() + ' is downloading..';
-                        $(currentRow).children().remove();
-                        $(currentRow).append('<td colspan="3" class="success">' + newText + '</td>')
-                    }
+                if (data == 'duplicate') {
+                    showStatus(true, 'Show already exists!')
+                    $('#search_results .btn-xs').removeAttr('disabled');
                 }
                 else {
-                    alert(ar.status + ' - ' + ar.message);
+                    window.location.href = "/show/" + seriesid
                 }
-
             }
+
         })
     }
-    function OnIgnoreAllClick() {
-        $('#table_movies .btn-movie.btn-danger').each(function () {
-            $(this).click();
-        });
-        $(this).remove();
-    }
+});
 
-    function OnAdminButtonClick() {
-        var source = $(this);
-        $.ajax({
-            url: '/refresh',
-            data: JSON.stringify({
-                'isshowrefresh': $(source).data('admin') == 'refresh',
-                'isscan': $(source).data('admin') == 'scan'
-            }),
-            dataType: 'text',
-            contentType: 'application/json',
-            type: 'POST',
-            error: function (req, errorString, ex) {
-                alert(errorString);
-                $('button, input').removeAttr('disabled');
-                $('a').removeClass('disabled_link')
-            },
-            beforeSend: function () {
-                $(source).find('.fa').addClass('fa-spin');
-                $('button, input').attr('disabled', 'disabled');
-                $('a').addClass('disabled_link');
-            },
-            success: function () {
-                var successText;
-                if ($(source).data('admin') == 'refresh') {
-                    successText = 'Episodes refreshed from TVDB...';
+function OnMovieButtonClick() {
+    var source = $(this);
+    var isIgnore = $(source).data('movie_ignore');
+    var isCleanup = $(source).text().toLowerCase().trim() == 'movie db cleanup';
+
+    $.ajax({
+        url: '/handle_movie',
+        data: JSON.stringify({
+            'movieid': $(source).data('movie_id'),
+            'isignore': isIgnore,
+            'iscleanup': isCleanup
+        }),
+        dataType: 'text',
+        contentType: 'application/json',
+        type: 'POST',
+        error: function (req, errorString, ex) {
+            showStatus(true, errorString);
+        },
+        success: function (data) {
+            var ar = $.parseJSON($.parseJSON(data));
+            if (ar.status == 'success') {
+                if (isIgnore) {
+                    $(source).closest('tr').remove();
+                }
+                else if (isCleanup) {
+                    location.reload(true);
                 }
                 else {
-                    successText = 'Scanning complete...';
+                    var currentRow = $(source).closest('tr');
+                    var newText = $(currentRow).children().first().text() + ' is downloading..';
+                    $(currentRow).children().remove();
+                    $(currentRow).append('<td colspan="3" class="success">' + newText + '</td>');
                 }
-                $("#alert_admin").text(successText).show();
-                window.setTimeout(function () {
-                    location.reload(true)
-                }, 3000)
             }
-        });
-    }
+            else {
+                showStatus(ar.status.toLowerCase() == 'error', ar.message);
+            }
 
-    function OnOmdbapiClick() {
-        var source = $(this);
-        $.ajax({
-            url: '/movie_details/',
-            dataType: 'text',
-            contentType: 'application/json',
-            data: {'movie_id': $(this).data('movie_id')},
-            success: function (data) {
-                if (data != 'error') {
-                    var movie = $.parseJSON(data);
-                    $(source).popover({
-                        container: 'body',
-                        placement: 'top',
-                        trigger: 'focus',
-                        html: true,
-                        title: '<a href="http://imdb.com/title/' + movie.imdbID + '" target="_blank">' + movie.Title + '</a>',
-                        content: '<div class="row">' +
-                                '<div class="col-xs-3">' +
-                                '<img class="img-responsive img-rounded" src=' + movie.Poster + '><strong>' +
-                                '</div>' +
-                                '<div class="col-xs-9">' +
-                                '<ul class="list-unstyled">' +
-                                '<li>Ratings:</strong> IMDB <span class="badge">' + movie.imdbRating + '</span> Meta <span class="badge">' + movie.Metascore + '</span>' +
-                                '</li><li><strong>Relase Date:</strong> ' + movie.Released +
-                                '</li><li><strong>Plot:</strong> ' + movie.Plot +
-                                '</li><li><strong>Staring:</strong> ' + movie.Actors +
-                                '</li><li><strong>Language:</strong> ' + movie.Language +
-                                '</li></ul></div></div>'
-                    });
-                    $(source).popover('show')
-                }
-                else {
-                    alert('error')
-                }
+        }
+    })
+}
+function OnIgnoreAllClick() {
+    $('#table_movies .btn-movie.btn-danger').each(function () {
+        $(this).click();
+    });
+    $(this).remove();
+}
+
+function OnAdminButtonClick() {
+    var source = $(this);
+    $.ajax({
+        url: '/refresh',
+        data: JSON.stringify({
+            'isshowrefresh': $(source).data('admin') == 'refresh',
+            'isscan': $(source).data('admin') == 'scan'
+        }),
+        dataType: 'text',
+        contentType: 'application/json',
+        type: 'POST',
+        error: function (req, errorString, ex) {
+            showStatus(true, errorString)
+            $('button, input').removeAttr('disabled');
+            $('a').removeClass('disabled_link')
+        },
+        beforeSend: function () {
+            $(source).find('.fa').addClass('fa-spin');
+            $('button, input').attr('disabled', 'disabled');
+            $('a').addClass('disabled_link');
+        },
+        success: function () {
+            var successText;
+            if ($(source).data('admin') == 'refresh') {
+                successText = 'Episodes refreshed from TVDB...';
             }
-        });
-        return false;
-    }
+            else {
+                successText = 'Scanning complete...';
+            }
+            showStatus(false, successText)
+            window.setTimeout(function () {
+                location.reload(true)
+            }, 3000)
+        }
+    });
+}
+
+function OnOmdbapiClick() {
+    var source = $(this);
+    $.ajax({
+        url: '/movie_details/',
+        dataType: 'text',
+        contentType: 'application/json',
+        data: {'movie_id': $(this).data('movie_id')},
+        success: function (data) {
+            if (data != 'error') {
+                var movie = $.parseJSON(data);
+                $(source).popover({
+                    container: 'body',
+                    placement: 'top',
+                    trigger: 'focus',
+                    html: true,
+                    title: '<a href="http://imdb.com/title/' + movie.imdbID + '" target="_blank">' + movie.Title + '</a>',
+                    content: '<div class="row">' +
+                            '<div class="col-xs-3">' +
+                            '<img class="img-responsive img-rounded" src=' + movie.Poster + '><strong>' +
+                            '</div>' +
+                            '<div class="col-xs-9">' +
+                            '<ul class="list-unstyled">' +
+                            '<li>Ratings:</strong> IMDB <span class="badge">' + movie.imdbRating + '</span> Meta <span class="badge">' + movie.Metascore + '</span>' +
+                            '</li><li><strong>Relase Date:</strong> ' + movie.Released +
+                            '</li><li><strong>Plot:</strong> ' + movie.Plot +
+                            '</li><li><strong>Staring:</strong> ' + movie.Actors +
+                            '</li><li><strong>Language:</strong> ' + movie.Language +
+                            '</li></ul></div></div>'
+                });
+                $(source).popover('show')
+            }
+            else {
+                showStatus(true,'Error')
+            }
+        }
+    });
+    return false;
+}
+
+
 </script>
 </html>
