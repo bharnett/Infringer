@@ -28,7 +28,7 @@
     </div>
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
-            <div class="alert alert-success" role="alert" style="display:none;"></div>
+            <div id="config_alert" class="alert alert-success" role="alert" style="display:none;"></div>
         </div>
     </div>
     <div class="row">
@@ -123,6 +123,81 @@
             </form>
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+            <hr>
+            <h4>Data Sources</h4>
+            <div class="alert alert-success" role="alert" style="display:none;"></div>
+        </div>
+    </div>
+    <div class="col-md-8 col-md-offset-2">
+        <table class="table table-condensed">
+            <thead>
+            <tr>
+                <th>domain</th>
+                <th>username</th>
+                <th>password</th>
+                <th>login page</th>
+                <th>scan url</th>
+                <th>media type</th>
+                <th>priority</th>
+                <th>css link select</th>
+                <th>max search links</th>
+            </tr>
+            </thead>
+            <tbody>
+                % for s in scanurls:
+                    <tr>
+                        <td><input type="hidden" value="${s.id}" id="scanurlid" name="scanurlid">
+                            <input type="text" class="form-control" id="domain" name="domain"
+                                   value="${s.domain}">
+                        </td>
+                        <td>
+                            <input type="text" class="form-control" id="username" name="username"
+                                   value="${s.username}">
+                        </td>
+                        <td>
+                            <input type="text" class="form-control" id="password" name="password"
+                                   value="${s.password}">
+                        </td>
+                        <td>
+                            <input type="text" class="form-control" id="login_page" name="login_page"
+                                   value="${s.login_page}">
+                        </td>
+                        <td>
+                            <input type="text" class="form-control" id="url" name="url" value="${s.url}">
+                        </td>
+                        <td>
+                            <select class="form-control" id="media_type" name="media_type">
+                                <option ${'selected="selected"' if s.media_type=='both' else ''}>both</option>
+                                <option ${'selected="selected"' if s.media_type=='tv' else ''}>tv</option>
+                                <option ${'selected="selected"' if s.media_type=='movies' else ''}>movies
+                                </option>
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-control" id="priority" name="priority">
+                                %for i in range(1, len(scanurls)+1):
+                                    <option ${'selected="selected"' if s.priority==i else ''}>${i}</option>
+                                %endfor
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control" id="link_select" name="link_select"
+                                   value="${s.link_select}">
+                        </td>
+                        <td>
+                            <select class="form-control" id="max_search_link" name="max_search_link">
+                                %for i in range(50, 800,50):
+                                    <option ${'selected="selected"' if s.max_search_links==i else ''}>${i}</option>
+                                %endfor
+                            </select>
+                        </td>
+                    </tr>
+                % endfor
+            </tbody>
+        </table>
+    </div>
 </div>
 
 </body>
@@ -147,7 +222,7 @@
                 success: function (data) {
                     var ar = $.parseJSON($.parseJSON(data));
                     if (ar.status == 'success') {
-                        $('.alert').text(ar.message).show();
+                        $('#config_alert').text(ar.message).show();
                     }
                     else {
                         alert(ar.status + ' - ' + ar.message);

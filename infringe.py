@@ -99,11 +99,12 @@ class Infringer(object):
         db = models.connect()
         config_template = my_lookup.get_template('config.html')
         c = db.query(Config).first()
+        s = db.query(ScanURL).all()
         if c is None:
             c = Config()
             db.add(c)
             db.commit()
-        return config_template.render(config=c)
+        return config_template.render(config=c, scanurls=s)
 
     @cherrypy.expose
     @cherrypy.tools.json_in()

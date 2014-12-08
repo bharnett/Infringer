@@ -52,6 +52,9 @@ class ScanURL(Base):
     max_search_links = Column(Integer, default=300)
     domain = Column(String, default='http://www.domain.com/')
 
+    def __str__(self):
+        return self.domain
+
 
 class Movie(Base):
     __tablename__ = 'movie'
@@ -92,14 +95,14 @@ class ActionLog(Base):
 
     @staticmethod
     def log(msg):
-        #clean up the log file to keep it to the last 200 records
+        #clean up the log file to keep it to the last 2000 records
         s = connect()
         l = ActionLog(time_stamp=datetime.datetime.now(), message=msg)
         s.add(l)
 
         all_logs = s.query(ActionLog).all()
-        if len(all_logs) > 200:
-            entries_to_delete = all_logs[:50]
+        if len(all_logs) == 3000:
+            entries_to_delete = all_logs[:2000]
             for e in entries_to_delete:
                 s.delete(e)
         s.commit()

@@ -40,7 +40,7 @@ class Searcher(object):
 
     @staticmethod
     def list_completed(list_of_shows):
-        items = [item for item in list_of_shows if item.status == False]
+        items = [item for item in list_of_shows if item.found is False]
         return len(items) == 0
 
 
@@ -53,6 +53,7 @@ def search_sites(list_of_shows):
     db = models.connect()
     config = db.query(Config).first()
     movie_types = ['movies', 'both']
+    tv_types = ['tv', 'both']
 
     for source in db.query(ScanURL).order_by(ScanURL.priority).all():
         tv_is_completed = Searcher.list_completed(list_of_shows)
@@ -72,7 +73,7 @@ def search_sites(list_of_shows):
                     if source.media_type in movie_types:
                         if process_movie_link(db, link):  # get movies links
                             continue
-                    else:  # search for all shows
+                    if source.media_type in tv_types:  # search for all shows
                         if tv_is_completed:  #takes care of 'both' media type sources
                             continue
                         else:
@@ -134,13 +135,13 @@ def source_login(source):
 
     if login_page.status_code == 200:
 
-        if source.domain == 'http://tehparadox.com/':
+        if 'tehparadox.com' in source.domain:
             login_form = login_page.soup.select('form')[0]
             login_form.select("#navbar_username")[0]['value'] = source.username
             login_form.select("#navbar_password")[0]['value'] = source.password
             response_page = browser.submit(login_form, login_page.url)
             return browser
-        elif source.domain == 'http://www.warez-bb.org/':
+        elif 'warez-bb.org' in source.domain:
             login_form = login_page.soup.select('form')[0]
             login_form.findAll("input", {"type": "text"})[0]['value'] = source.username
             login_form.findAll("input", {"type": "password"})[0]['value'] = source.password
@@ -191,13 +192,16 @@ def process_movie_link(db, link):
     if regex.search(link.text) is None and regex_dated.search(
             link.text) is None and regex_season.search(
             link.text) is None and ('1080p' in link.text or '720p' in link.text):
-        # probably movie - no regex and 1080p so add movie db
+        # probably movie - no regex and 1080p or 720p so add movie db
         edited_link_text = re.sub('\[?.*\]','', link.text).strip()
         if db.query(Movie).filter(Movie.name == edited_link_text).first() is None:
             m = Movie(name=edited_link_text, link_text=link.get('href'), status='Not Retrieved')
             db.add(m)
             db.commit()
             models.ActionLog.log('"%s" added to downloadable movies' % m.name)
+        return True
+    else:
+        return False
 
 
 def get_download_links(soup, config, domain, hd_format='720p'):
