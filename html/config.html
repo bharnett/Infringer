@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>User Configuration</title>
     <%include file="base.html"/>
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.13.1/jquery.validate.min.js"></script>
 </head>
 <body>
 <div class="container-fluid">
@@ -24,31 +25,6 @@
     <div class="row">
         <div class="col-md-8 col-md-offset-2">
             <form id="frm_config" class="form-horizontal" role="form" action="/ajax_config" method="POST">
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="tp_username">tehparadox.com username</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="tp_username" name="tp_username"
-                               value="${config.tp_username}">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="tp_password">tehparadox.com password</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="tp_password" name="tp_password"
-                               value="${config.tp_password}">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="tp_login_page">tehparadox.com login page</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="tp_login_page"
-                               name="tp_login_page"
-                               value="${config.tp_login_page}">
-                    </div>
-                </div>
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="crawljob_directory">.crawljob directory</label>
 
@@ -89,8 +65,12 @@
                     <label class="col-sm-3 control-label" for="hd_format">hd video format</label>
 
                     <div class="col-sm-9">
-                        <input type="text" class="form-control" id="hd_format" name="hd_format"
-                               value="${config.hd_format}">
+                        <select class="form-control" id="hd_format" name="hd_format">
+                            <option ${'selected="selected"' if config.hd_format=='720p' else ''}>720p</option>
+                            <option ${'selected="selected"' if config.hd_format=='1080p' else ''}>1080p</option>
+                        </select>
+##                        <input type="text" class="form-control" id="hd_format" name="hd_format"
+##                               value="${config.hd_format}">
                     </div>
                 </div>
                 <div class="form-group">
@@ -114,14 +94,14 @@
         </div>
     </div>
     <div class="row">
-        <div class="col-md-8 col-md-offset-2">
+        <div class="col-md-10 col-md-offset-1">
             <hr>
             <h4>Data Sources</h4>
             <div class="alert alert-success" role="alert" style="display:none;"></div>
         </div>
     </div>
-    <div class="col-md-8 col-md-offset-2">
-        <table class="table table-condensed">
+    <div class="col-md-10 col-md-offset-1">
+        <table id="datasource-table" class="table table-condensed">
             <thead>
             <tr>
                 <th>domain</th>
@@ -133,32 +113,33 @@
                 <th>priority</th>
                 <th>css link select</th>
                 <th>max search links</th>
+                <th></th>
             </tr>
             </thead>
             <tbody>
                 % for s in scanurls:
                     <tr>
-                        <td><input type="hidden" value="${s.id}" id="scanurlid" name="scanurlid">
-                            <input type="text" class="form-control" id="domain" name="domain"
+                        <td><input type="hidden" value="${s.id}" id="id" name="id">
+                            <input type="text" class="form-control input-sm" id="domain" name="domain"
                                    value="${s.domain}">
                         </td>
                         <td>
-                            <input type="text" class="form-control" id="username" name="username"
+                            <input type="text" class="form-control input-sm" id="username" name="username"
                                    value="${s.username}">
                         </td>
                         <td>
-                            <input type="text" class="form-control" id="password" name="password"
+                            <input type="text" class="form-control input-sm" id="password" name="password"
                                    value="${s.password}">
                         </td>
                         <td>
-                            <input type="text" class="form-control" id="login_page" name="login_page"
+                            <input type="text" class="form-control input-sm" id="login_page" name="login_page"
                                    value="${s.login_page}">
                         </td>
                         <td>
-                            <input type="text" class="form-control" id="url" name="url" value="${s.url}">
+                            <input type="text" class="form-control input-sm" id="url" name="url" value="${s.url}">
                         </td>
                         <td>
-                            <select class="form-control" id="media_type" name="media_type">
+                            <select class="form-control input-sm" id="media_type" name="media_type">
                                 <option ${'selected="selected"' if s.media_type=='both' else ''}>both</option>
                                 <option ${'selected="selected"' if s.media_type=='tv' else ''}>tv</option>
                                 <option ${'selected="selected"' if s.media_type=='movies' else ''}>movies
@@ -166,25 +147,27 @@
                             </select>
                         </td>
                         <td>
-                            <select class="form-control" id="priority" name="priority">
+                            <select class="form-control input-sm" id="priority" name="priority">
                                 %for i in range(1, len(scanurls)+1):
                                     <option ${'selected="selected"' if s.priority==i else ''}>${i}</option>
                                 %endfor
                             </select>
                         </td>
                         <td>
-                            <input type="text" class="form-control" id="link_select" name="link_select"
+                            <input type="text" class="form-control input-sm" id="link_select" name="link_select"
                                    value="${s.link_select}">
                         </td>
                         <td>
-                            <select class="form-control" id="max_search_link" name="max_search_link">
+                            <select class="form-control input-sm" id="max_search_link" name="max_search_link">
                                 %for i in range(50, 800,50):
                                     <option ${'selected="selected"' if s.max_search_links==i else ''}>${i}</option>
                                 %endfor
                             </select>
                         </td>
+                        <td><span class="glyphicon glyphicon-remove-sign deleter" style="cursor: pointer;" aria-hidden="true"></span></td>
                     </tr>
                 % endfor
+            <tr><td><button type="button" class="btn btn-sm btn-success adder"><span class="glyphicon glyphicon-plus-sign"></span> Add Data Source</button></tr>
             </tbody>
         </table>
     </div>
@@ -193,6 +176,42 @@
 </body>
 <script type="text/javascript">
     $(document).ready(function () {
+        $('#datasource-table input, select').change(updateDataSource)
+        $('.adder, .deleter').click(updateDataSource)
+
+        var domainRegEx = ^[a-zA-Z0-9\-\.]+\.(com|org|net|mil|edu|COM|ORG|NET|MIL|EDU)$
+
+        $('#frm_config').validate({
+            rules:{
+                crawljob_directory: {
+                    required: true
+                },
+                file_host_domain:
+                {
+                    required: true,
+                    url: true
+                },
+                hd_format:
+                {
+                    required: true
+                },
+                ip:
+                {
+                    required: true
+                },
+                port:
+                {
+                    require: true,
+                    digits: true,
+                    minlength: 4
+                }
+
+
+            }
+
+
+        })
+
         $('#frm_config').submit(function (e) {
             var formData = $(this).serializeArray();
             var data = {};
@@ -215,8 +234,41 @@
                 }
             });
             e.preventDefault();
-            e.unbind();
         });
-    })
+    });
+
+    function updateDataSource(){
+        var row = $(this).closest('tr')
+        var id = $(row).find('input:hidden').val();
+        var propertyName = $(this).attr('id');
+        var propertyValue = $(this).val();
+        var action = 'update'
+        if ($(this).hasClass('deleter')) action = 'delete';
+        if ($(this).hasClass('adder')) action = 'add';
+
+        data = {id: id, propertyName: propertyName, propertyValue: propertyValue, action: action};
+        $.ajax({
+            url: '/update_scanurl',
+            type: 'POST',
+            data: JSON.stringify(data),
+            dataType: 'text',
+            contentType: 'application/json',
+            error: function (jqXHR, textStatus, errorThrown) {
+                showStatus(true, textStatus + ' ' + errorThrown);
+            },
+            success: function (data) {
+                var ar = $.parseJSON($.parseJSON(data));
+                showStatus(ar.status == 'error', ar.message);
+                if (action == 'delete')
+                {
+                    $(row).remove();
+                }
+                else if(action == 'add')
+                {
+                    window.location.reload(true);
+                }
+            }
+        })
+    }
 </script>
 </html>

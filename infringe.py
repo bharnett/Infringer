@@ -115,9 +115,6 @@ class Infringer(object):
             data = cherrypy.request.json
             db = models.connect()
             c = db.query(Config).first()
-            c.tp_username = data['tp_username']
-            c.tp_password = data['tp_password']
-            c.tp_password = data['tp_password']
             c.tp_login_page = data['tp_login_page']
             c.crawljob_directory = data['crawljob_directory']
             c.tv_parent_directory = data['tv_parent_directory']
@@ -129,10 +126,36 @@ class Infringer(object):
             db.commit()
         except Exception as ex:
             ar.status = 'error'
-            ar.message = Exception
+            ar.message = str(Exception)
 
         return ar.to_JSON()
 
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def update_scanurl(self):
+        ar = AjaxResponse('Data source updated...')
+        try:
+            data = cherrypy.request.json
+            db = models.connect()
+            action = data['action']
+            if action == 'add':
+                new_scanurl = ScanURL()
+                ar.message('Data source added...')
+                db.add(new_scanurl)
+            else:
+                u = db.query(ScanURL).filter(ScanURL.id == data['id']).first()
+                if action == 'update':
+                    setattr(u, data['propertyName'], data['propertyValue'])
+                elif action == 'delete':
+                    ar.message = 'Data source deleted...'
+                    db.delete(u)
+            db.commit()
+        except Exception as ex:
+            ar.status = 'error'
+            ar.message = str(Exception)
+
+        return ar.to_JSON()
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -255,8 +278,9 @@ class Infringer(object):
             omdb_api_link = m.get_IMDB_link()
             parsed = urllib.parse.urlparse(omdb_api_link)
             urllib.parse.urlparse(parsed.query)
-            mdb_url_param = '%s_%s' % (urllib.parse.quote_plus(urllib.parse.parse_qs(parsed.query)['t'][0]),
-                                       urllib.parse.parse_qs(parsed.query)['y'][0])
+            movie_name = urllib.parse.parse_qs(parsed.query)['t'][0]
+            release_year = urllib.parse.parse_qs(parsed.query)['y'][0]
+            mdb_url_param = '%s_%s' % (urllib.parse.quote_plus(movie_name), release_year)
             mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % mdb_url_param
             mdb_response = urllib.request.urlopen(mdb_link)
             mdb_json = mdb_response.read()
@@ -264,9 +288,15 @@ class Infringer(object):
             mdb_data = json.loads(mdb_json_string)
             ombdapi_resp = urllib.request.urlopen(omdb_api_link)
             ombdapi_json = json.loads(bytes.decode(ombdapi_resp.read()))
+
+            #set default
+            new_img = 'http://146990c1ab4c59b8bbd0-13f1a0753bafdde5bf7ad71d7d5a2da6.r94.cf1.rackcdn.com/techdiff.jpg'
             try:
-                if len(mdb_data) > 0:
-                    new_img = 'http://image.tmdb.org/t/p/w154' + mdb_data['results'][0]['poster_path']
+                if len(mdb_data) > 0:  #find the correct image by name and year
+                    for mdb_movie in mdb_data['results']:
+                        if mdb_movie['title'] == movie_name and mdb_movie['release_date'][:4] == release_year:
+                            new_img = 'http://image.tmdb.org/t/p/w154' + mdb_movie['poster_path']
+                            break
             except Exception as ex:
                 new_img = 'http://146990c1ab4c59b8bbd0-13f1a0753bafdde5bf7ad71d7d5a2da6.r94.cf1.rackcdn.com/techdiff.jpg'
 
@@ -291,8 +321,8 @@ if __name__ == '__main__':
             'tools.staticdir.dir': './public'
         }
     }
-    db = models.connect()
-    config = db.query(models.Config).first()
+    connect_db = models.connect()
+    config = connect_db.query(models.Config).first()
 
     # if config is not None:
         # cherrypy.config.update({

@@ -98,7 +98,7 @@ class ActionLog(Base):
         #clean up the log file to keep it to the last 2000 records
         s = connect()
         l = ActionLog(time_stamp=datetime.datetime.now(), message=msg)
-        s.add(l)
+        s.add(str(l))
 
         all_logs = s.query(ActionLog).all()
         if len(all_logs) == 3000:
@@ -111,9 +111,6 @@ class ActionLog(Base):
 class Config(Base):
     __tablename__ = 'config'
     id = Column(Integer, primary_key=True)
-    tp_username = Column(String, default='')
-    tp_password = Column(String, default='')
-    tp_login_page = Column(String, default='http://tehparadox.com/forum/') #'http://tehparadox.com/forum/'
     crawljob_directory = Column(String, default='')
     tv_parent_directory = Column(String, default='')
     movies_directory = Column(String, default='')
@@ -121,6 +118,7 @@ class Config(Base):
     hd_format = Column(String, default='720p') # only 720p or 1080p
     ip = Column(String, default='127.0.0.1')
     port = Column(String, default='8080')
+
 
     #http://docs.sqlalchemy.org/en/rel_0_9/dialects/sqlite.html
 def connect():
