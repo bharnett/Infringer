@@ -9,5 +9,4 @@ install those first before attempting to run the program!  It isn't much good wi
 <li>Mechanical Soup</li>
 <li>SQL Alchemy</li>
 <li>TVDB_API</li>
-<li>TVDB_API</li>
 </ul>
