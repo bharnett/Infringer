@@ -6,8 +6,8 @@ install those first before attempting to run the program!  It isn't much good wi
 <ul>
 <li>Cherrypy</li>
 <li>Mako</li>
-<li>Mechanical Soup</li>
-<li>SQL Alchemy</li>
+<li>MechanicalSoup</li>
+<li>SQLAlchemy</li>
 <li>TVDB_API</li>
 </ul>
 
