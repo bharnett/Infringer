@@ -20,6 +20,6 @@ All javascript references are held in CDNs:
 <li>nicescroll</li>
 </ul>
 
-Once you've downloaded the repo, just call 'python3 [DIRECTORY/OF/REPO]/Infringer/infringe.py' and it will start right up. The default listener is 0.0.0.0:8080 so just go to localhost:8080 and you'll be ready to roll.  
+Once you've downloaded the repo, just call 'python3 [DIRECTORY/OF/REPO]/Infringer/infringe.py' and it will start right up. The default listener is 127.0.0.1:8080 but can be changed in the config.  Changing requires a full shutdown of Python and the terminal because I'm lazy.
 
 For automation, I recommend <a href="http://www.soma-zone.com/LaunchControl/">Launch Control for Mac</a> or Task Scheduler for Windows.  The 'LinkRetriever.py' file can be called independantly to scan the web.  'webutils.py' can be called independantly to refresh all shows for new/updated episodes.  
