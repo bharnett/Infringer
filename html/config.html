@@ -69,9 +69,9 @@
                             <option ${'selected="selected"' if config.hd_format=='720p' else ''}>720p</option>
                             <option ${'selected="selected"' if config.hd_format=='1080p' else ''}>1080p</option>
                         </select>
-##                        <input type="text" class="form-control" id="hd_format" name="hd_format"
-##                               value="${config.hd_format}">
-                    </div>
+                        ##                        <input type="text" class="form-control" id="hd_format" name="hd_format"
+                        ##                               value="${config.hd_format}">
+                                            </div>
                 </div>
                 <div class="form-group">
                     <label class="col-sm-3 control-label" for="ip">server host ip</label>
@@ -97,6 +97,7 @@
         <div class="col-md-10 col-md-offset-1">
             <hr>
             <h4>Data Sources</h4>
+
             <div class="alert alert-success" role="alert" style="display:none;"></div>
         </div>
     </div>
@@ -164,10 +165,16 @@
                                 %endfor
                             </select>
                         </td>
-                        <td><span class="glyphicon glyphicon-remove-sign deleter" style="cursor: pointer;" aria-hidden="true"></span></td>
+                        <td><span class="glyphicon glyphicon-remove-sign deleter" style="cursor: pointer;"
+                                  aria-hidden="true"></span></td>
                     </tr>
                 % endfor
-            <tr><td><button type="button" class="btn btn-sm btn-success adder"><span class="glyphicon glyphicon-plus-sign"></span> Add Data Source</button></tr>
+            <tr>
+                <td>
+                    <button type="button" class="btn btn-sm btn-success adder"><span
+                            class="glyphicon glyphicon-plus-sign"></span> Add Data Source
+                    </button>
+            </tr>
             </tbody>
         </table>
     </div>
@@ -179,65 +186,93 @@
         $('#datasource-table input, select').change(updateDataSource)
         $('.adder, .deleter').click(updateDataSource)
 
-        var domainRegEx = ^[a-zA-Z0-9\-\.]+\.(com|org|net|mil|edu|COM|ORG|NET|MIL|EDU)$
+        $.validator.addMethod('domainChecker', function (value) {
+           return /^[A-Za-z0-9-]{1,63}\.+[A-Za-z]{2,6}$/.test(value);
+        }, 'Invalid domain (ex: mydomain.com)');
+
+        $.validator.addMethod('IP4Checker', function (value) {
+            var pieces = value.split('.');
+            if (pieces.length != 4) {
+                return false;
+            }
+            else {
+                var isValid = true;
+                for (p in pieces) {
+                    if (!isNaN(p) && (function (x) {
+                        return (x | 0) === x;
+                    })(parseFloat(p))) {
+                        if (p < 0 || p > 255) isValid = false;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+                return isValid;
+            }
+        }, 'Invalid IP address');
 
         $('#frm_config').validate({
-            rules:{
+            highlight: function (element) {
+                $(element).closest('.form-group').addClass("has-error");
+            },
+            unhighlight: function (element) {
+                $(element).closest('.form-group').removeClass("has-error");
+            },
+            errorClass: 'control-label has-error',
+            rules: {
                 crawljob_directory: {
                     required: true
                 },
-                file_host_domain:
-                {
+                file_host_domain: {
                     required: true,
                     url: true
                 },
-                hd_format:
-                {
+                hd_format: {
                     required: true
                 },
-                ip:
-                {
-                    required: true
+                file_host_domain: {
+                    required: true,
+                    domainChecker: true
                 },
-                port:
-                {
-                    require: true,
+                ip: {
+                    required: true,
+                    IP4Checker: true
+                },
+                port: {
+                    required: true,
                     digits: true,
                     minlength: 4
                 }
-
-
+            },
+            submitHandler: function (form) {
+                $(form).submit(function (e) {
+                    var formData = $(form).serializeArray();
+                    var data = {};
+                    $(form).serializeArray().map(function (x) {
+                        data[x.name] = x.value;
+                    });
+                    var fromURL = $(form).attr('action');
+                    $.ajax({
+                        url: fromURL,
+                        type: 'POST',
+                        data: JSON.stringify(data),
+                        dataType: 'text',
+                        contentType: 'application/json',
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            showStatus(true, textStatus + ' ' + errorThrown);
+                        },
+                        success: function (data) {
+                            var ar = $.parseJSON($.parseJSON(data));
+                            showStatus(ar.status == 'error', ar.message);
+                        }
+                    });
+                    e.preventDefault();
+                });
             }
-
-
-        })
-
-        $('#frm_config').submit(function (e) {
-            var formData = $(this).serializeArray();
-            var data = {};
-            $(this).serializeArray().map(function (x) {
-                data[x.name] = x.value;
-            });
-            var fromURL = $(this).attr('action');
-            $.ajax({
-                url: fromURL,
-                type: 'POST',
-                data: JSON.stringify(data),
-                dataType: 'text',
-                contentType: 'application/json',
-                error: function (jqXHR, textStatus, errorThrown) {
-                    showStatus(true, textStatus + ' ' + errorThrown);
-                },
-                success: function (data) {
-                    var ar = $.parseJSON($.parseJSON(data));
-                    showStatus(ar.status == 'error', ar.message);
-                }
-            });
-            e.preventDefault();
         });
     });
 
-    function updateDataSource(){
+    function updateDataSource() {
         var row = $(this).closest('tr')
         var id = $(row).find('input:hidden').val();
         var propertyName = $(this).attr('id');
@@ -259,12 +294,10 @@
             success: function (data) {
                 var ar = $.parseJSON($.parseJSON(data));
                 showStatus(ar.status == 'error', ar.message);
-                if (action == 'delete')
-                {
+                if (action == 'delete') {
                     $(row).remove();
                 }
-                else if(action == 'add')
-                {
+                else if (action == 'add') {
                     window.location.reload(true);
                 }
             }

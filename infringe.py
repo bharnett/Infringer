@@ -115,7 +115,6 @@ class Infringer(object):
             data = cherrypy.request.json
             db = models.connect()
             c = db.query(Config).first()
-            c.tp_login_page = data['tp_login_page']
             c.crawljob_directory = data['crawljob_directory']
             c.tv_parent_directory = data['tv_parent_directory']
             c.movies_directory = data['movies_directory']
@@ -292,7 +291,10 @@ class Infringer(object):
             #set default
             new_img = 'http://146990c1ab4c59b8bbd0-13f1a0753bafdde5bf7ad71d7d5a2da6.r94.cf1.rackcdn.com/techdiff.jpg'
             try:
-                if len(mdb_data) > 0:  #find the correct image by name and year
+                if len(mdb_data['results']) == 1:
+                    new_img = 'http://image.tmdb.org/t/p/w154' + mdb_data['results'][0]['poster_path']
+
+                elif len(mdb_data['results']) > 0:  #find the correct image by name and year
                     for mdb_movie in mdb_data['results']:
                         if mdb_movie['title'] == movie_name and mdb_movie['release_date'][:4] == release_year:
                             new_img = 'http://image.tmdb.org/t/p/w154' + mdb_movie['poster_path']
@@ -324,10 +326,10 @@ if __name__ == '__main__':
     connect_db = models.connect()
     config = connect_db.query(models.Config).first()
 
-    # if config is not None:
-        # cherrypy.config.update({
-        #     'server.socket_host': config.ip,
-        #     'server.socket_port': int(config.port),
-        # })
+    if config is not None:
+        cherrypy.config.update({
+            'server.socket_host': config.ip,
+            'server.socket_port': int(config.port),
+        })
     my_infringer = Infringer()
     cherrypy.quickstart(my_infringer, '/', conf)

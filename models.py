@@ -1,3 +1,4 @@
+import urllib
 from sqlalchemy import Column, String, Integer, ForeignKey, Date, Boolean, DateTime, create_engine
 from sqlalchemy.orm import relationship, backref, sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
@@ -73,6 +74,7 @@ class Movie(Base):
             release_date = release_date_list[0].replace('(', '').replace(')', '')
         else:
             release_date = ''
+        s = urllib.parse.quote_plus(s)
         return 'http://www.omdbapi.com/?t=%s&y=%s&plot=short&r=json' % (s, release_date)
 
 

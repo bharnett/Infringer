@@ -1,6 +1,8 @@
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
+/.idea/Infringer.iml
+/.workspace.xml
 
 # Folder config file
 Desktop.ini
@@ -41,3 +43,7 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+.idea/Infringer.iml
+
+.idea/workspace.xml
