@@ -57,7 +57,7 @@ def search_sites(list_of_shows):
 
     for source in db.query(ScanURL).order_by(ScanURL.priority).all():
         tv_is_completed = Searcher.list_completed(list_of_shows)
-        if tv_is_completed and source.media_type == 'tv':  #skip tv types list is completed
+        if tv_is_completed and source.media_type == 'tv':  # skip tv types list is completed
             continue
 
         browser = source_login(source)
@@ -74,7 +74,7 @@ def search_sites(list_of_shows):
                         if process_movie_link(db, link):  # get movies links
                             continue
                     if source.media_type in tv_types:  # search for all shows
-                        if tv_is_completed:  #takes care of 'both' media type sources
+                        if tv_is_completed:  # takes care of 'both' media type sources
                             continue
                         else:
                             for show_searcher in [x for x in list_of_shows if not x.found]:
@@ -162,15 +162,21 @@ def get_episode_list():
         episodes = s.episodes.filter(Episode.air_date <= datetime.date.today()).filter(
             Episode.status == 'Pending').all()
 
+        edit_chars = [('', ''), ('.', ' '), ('.', '')]  #first one handles initial non-char-edited name
+        second_chars = [('\'', '')]
         for e in episodes:
             # remove dates from show names (2014), (2009) for accurate string searches
             edited_show_name = re.sub('[\(][0-9]{4}[\)]', '', s.show_name)
             episode_id_string = 's%se%s' % (str(e.season_number).zfill(2), str(e.episode_number).zfill(2))
 
             search_episode = Searcher(e.id, episode_id_string, '', s.show_directory)
-            search_episode.search_list.append(edited_show_name.lower())  # regular show name
-            search_episode.search_list.append(edited_show_name.replace('.', ' ').strip().lower())  # replace . with ' '
-            search_episode.search_list.append(edited_show_name.replace('.', '').strip().lower())  # replace . with ''
+            #search_episode.search_list.append(edited_show_name.lower())  # regular show name
+
+            for char in edit_chars:  #this could be tightened up a bit to remove duplicates, but it works fine
+                char_edit_name = edited_show_name.replace(char[0], char[1]).strip().lower()
+                search_episode.search_list.append(char_edit_name)
+                for second in second_chars:
+                    search_episode.search_list.append(char_edit_name.replace(second[0], second[1]).strip().lower())
 
             list_of_shows.append(search_episode)
 
@@ -193,7 +199,7 @@ def process_movie_link(db, link):
             link.text) is None and regex_season.search(
             link.text) is None and ('1080p' in link.text or '720p' in link.text):
         # probably movie - no regex and 1080p or 720p so add movie db
-        edited_link_text = re.sub('\[?.*\]','', link.text).strip()
+        edited_link_text = re.sub('\[?.*\]', '', link.text).strip()
         if db.query(Movie).filter(Movie.name == edited_link_text).first() is None:
             m = Movie(name=edited_link_text, link_text=link.get('href'), status='Not Retrieved')
             db.add(m)

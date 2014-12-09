@@ -120,6 +120,9 @@ class Infringer(object):
             c.movies_directory = data['movies_directory']
             c.file_host_domain = data['file_host_domain']
             c.hd_format = data['hd_format']
+            is_restart = False
+            if data['ip'] != c.ip or data['port'] != c.port:
+                is_restart = True
             c.ip = data['ip']
             c.port = data['port']
             db.commit()
@@ -128,6 +131,25 @@ class Infringer(object):
             ar.message = str(Exception)
 
         return ar.to_JSON()
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def config_dirs(self, crawljob_directory='', tv_parent_directory='', movies_directory=''):
+        try:
+            if crawljob_directory != '':
+                test_string = crawljob_directory
+            elif tv_parent_directory != '':
+                test_string = tv_parent_directory
+            else:
+                test_string = movies_directory
+            validation_response = os.path.isdir(test_string)
+        except Exception as ex:
+            validation_response = False
+
+        return validation_response
+
 
     @cherrypy.expose
     @cherrypy.tools.json_in()
@@ -277,7 +299,7 @@ class Infringer(object):
             omdb_api_link = m.get_IMDB_link()
             parsed = urllib.parse.urlparse(omdb_api_link)
             urllib.parse.urlparse(parsed.query)
-            movie_name = urllib.parse.parse_qs(parsed.query)['t'][0].replace('+', ' ')
+            movie_name = urllib.parse.parse_qs(parsed.query)['t'][0].replace('+', ' ') # get the real movie name to use later
             release_year = urllib.parse.parse_qs(parsed.query)['y'][0]
             mdb_url_param = '%s_%s' % (urllib.parse.quote_plus(movie_name), release_year)
             mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % mdb_url_param
