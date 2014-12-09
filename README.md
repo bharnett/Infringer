@@ -20,4 +20,4 @@ All javascript references are held in CDNs:
 <li>nicescroll</li>
 </ul>
 
-Once you've downloaded the repo, just call 'python3 [DIRECTORY/OF/REPO/Infringer/infringe.py]  Default listener is 0.0.0.0:8080 so just go to localhost:8080 and you'll be ready to roll.  
+Once you've downloaded the repo, just call 'python3 [DIRECTORY/OF/REPO]/Infringer/infringe.py'  Default listener is 0.0.0.0:8080 so just go to localhost:8080 and you'll be ready to roll.  
