@@ -100,7 +100,7 @@ class ActionLog(Base):
         #clean up the log file to keep it to the last 2000 records
         s = connect()
         l = ActionLog(time_stamp=datetime.datetime.now(), message=msg)
-        s.add(str(l))
+        s.add(l)
 
         all_logs = s.query(ActionLog).all()
         if len(all_logs) == 3000:

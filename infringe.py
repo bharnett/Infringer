@@ -277,7 +277,7 @@ class Infringer(object):
             omdb_api_link = m.get_IMDB_link()
             parsed = urllib.parse.urlparse(omdb_api_link)
             urllib.parse.urlparse(parsed.query)
-            movie_name = urllib.parse.parse_qs(parsed.query)['t'][0]
+            movie_name = urllib.parse.parse_qs(parsed.query)['t'][0].replace('+', ' ')
             release_year = urllib.parse.parse_qs(parsed.query)['y'][0]
             mdb_url_param = '%s_%s' % (urllib.parse.quote_plus(movie_name), release_year)
             mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % mdb_url_param

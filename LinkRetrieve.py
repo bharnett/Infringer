@@ -64,7 +64,7 @@ def search_sites(list_of_shows):
         if browser is None:
             ActionLog.log('%s could not logon' % source.login_page)
         else:
-
+            ActionLog.log('Scanning %s for %s' % (source.domain, source.media_type))
             soup = browser.get(source.url).soup
             soup = soup.select(source.link_select)[:source.max_search_links + 1]
 
@@ -82,12 +82,12 @@ def search_sites(list_of_shows):
                                 if show_searcher.search_me(link_text):
                                     show_searcher.link = urljoin(source.domain, link.get('href'))
                                     show_searcher.found = True
-                                    models.ActionLog.log('"%s" found!' % show_searcher)
+                                    ActionLog.log('"%s" found!' % show_searcher)
 
             # open links and get download links for TV
             for show_searcher in list_of_shows:
                 if not show_searcher.found:
-                    models.ActionLog.log("%s not found in soup" % str(show_searcher))
+                    ActionLog.log("%s not found in soup" % str(show_searcher))
                     continue
                 tv_response = browser.get(show_searcher.link)
                 if tv_response.status_code == 200:
@@ -179,7 +179,7 @@ def get_episode_list():
     else:
         all_tv = 'no shows'
 
-    models.ActionLog.log('Searching for: %s.' % all_tv)
+    ActionLog.log('Searching for: %s.' % all_tv)
     db.commit()
 
     return list_of_shows
@@ -189,7 +189,7 @@ def process_movie_link(db, link):
     regex = re.compile(r'[sS]\d\d[eE]\d\d')
     regex_dated = re.compile(r'[0-9]{4}[\s\S][0-1][0-9][\s\S][0-3][0-9]')
     regex_season = re.compile(r'[sS]eason\s\d{1,2}')
-    if regex.search(link.text) is None and regex_dated.search(
+    if link.text.strip() != '' and regex.search(link.text) is None and regex_dated.search(
             link.text) is None and regex_season.search(
             link.text) is None and ('1080p' in link.text or '720p' in link.text):
         # probably movie - no regex and 1080p or 720p so add movie db
@@ -198,7 +198,7 @@ def process_movie_link(db, link):
             m = Movie(name=edited_link_text, link_text=link.get('href'), status='Not Retrieved')
             db.add(m)
             db.commit()
-            models.ActionLog.log('"%s" added to downloadable movies' % m.name)
+            ActionLog.log('"%s" added to downloadable movies' % m.name)
         return True
     else:
         return False

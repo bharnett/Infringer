@@ -8,8 +8,10 @@ from models import Show, Episode
 
 
 def add_episodes(series_id, t=None, db=None):
+    is_single_update = False
     if t is None:
         t = tvdb_api.Tvdb()
+        is_single_update = True
     if db is None:
         db = models.connect()
     episodes = t[series_id].search('')
@@ -26,16 +28,26 @@ def add_episodes(series_id, t=None, db=None):
         else:
             first_aired = datetime.datetime.strptime(e['firstaired'], '%Y-%m-%d').date()
 
-        if first_aired is not None and first_aired >= datetime.date.today() + datetime.timedelta(-2):
-            episode_retrieved = 'Pending'
-        elif first_aired is None:
-            episode_retrieved = 'Pending'
+        if is_single_update:
+            if first_aired is not None and first_aired >= datetime.date.today()
+                episodes_retrieved = 'Pending'
+            else:
+                episodes_retrieved = 'Retrieved'
         else:
-            episode_retrieved = 'Retrieved'
+            if first_aired is not None and first_aired >= datetime.date.today() + datetime.timedelta(-2):
+                episode_retrieved = 'Pending'
+            elif first_aired is None:
+                episode_retrieved = 'Pending'
+            else:
+                episode_retrieved = 'Retrieved'
 
         new_episode = Episode(season_number=e['seasonnumber'], episode_number=e['episodenumber'],
                               air_date=first_aired, episode_name=str(e).replace('<', '').replace('>', ''),
                               status=episode_retrieved, show=update_show)
+
+        if new_episode.season_number == 0: #skip series extras
+            continue;
+
         db.add(new_episode)
         #update_show.episodes.append(new_episode)
         # update_show.episodes.append(Episode(season_number=e['seasonnumber'], episode_number=e['episodenumber'],
