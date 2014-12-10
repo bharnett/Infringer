@@ -2,9 +2,10 @@ import urllib
 from sqlalchemy import Column, String, Integer, ForeignKey, Date, Boolean, DateTime, create_engine
 from sqlalchemy.orm import relationship, backref, sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
-
+import os
 import re
 import datetime
+
 
 Base = declarative_base()
 
@@ -120,11 +121,24 @@ class Config(Base):
     hd_format = Column(String, default='720p') # only 720p or 1080p
     ip = Column(String, default='127.0.0.1')
     port = Column(String, default='8080')
+    scan_interval = Column(Integer, default=12)
+    refresh_day = Column(String, default='sun')
+    refresh_hour = Column(Integer, default=2)
+
+    @staticmethod
+    def get_hours():
+        return list(range(1, 25))
+
+    @staticmethod
+    def get_intervals():
+        return list(range(2, 13))
 
 
     #http://docs.sqlalchemy.org/en/rel_0_9/dialects/sqlite.html
 def connect():
-    engine = create_engine('sqlite:///db.sqlite3', connect_args={'check_same_thread':False})
+    db_path = 'sqlite:///' + os.path.join(os.path.abspath(os.getcwd()), 'db.sqlite3')
+    #engine = create_engine('sqlite:///db.sqlite3', connect_args={'check_same_thread':False})
+    engine = create_engine(db_path, connect_args={'check_same_thread':False})
     session_factory = sessionmaker()
     session_factory.configure(bind=engine)
     Base.metadata.create_all(engine)

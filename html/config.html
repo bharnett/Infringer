@@ -93,6 +93,41 @@
                                value="${config.port}">
                     </div>
                 </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="scan_interval">Show Scan Interval (starting at midnight)</label>
+
+                    <div class="col-sm-9">
+                        <select class="form-control" id="scan_interval" name="scan_interval">
+                            % for i in config.get_intervals():
+                                <option value="${i}" ${'selected="selected"' if config.scan_interval==i else ''}>${i}</option>
+                            % endfor
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="refresh_day">TV DB Refresh Day</label>
+                    <div class="col-sm-9">
+                        <select class="form-control" id="refresh_day" name="refresh_day">
+                            <option value="sun" ${'selected="selected"' if config.refresh_day=='sun' else ''}>Sunday</option>
+                            <option value="mon" ${'selected="selected"' if config.refresh_day=='mon' else ''}>Monday</option>
+                            <option value="tue" ${'selected="selected"' if config.refresh_day=='tue' else ''}>Tuesday</option>
+                            <option value="wed" ${'selected="selected"' if config.refresh_day=='wed' else ''}>Wednesday</option>
+                            <option value="thu" ${'selected="selected"' if config.refresh_day=='thu' else ''}>Thursday</option>
+                            <option value="fri" ${'selected="selected"' if config.refresh_day=='fri' else ''}>Friday</option>
+                            <option value="sat" ${'selected="selected"' if config.refresh_day=='sat' else ''}>Saturday</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label" for="refresh_hour">TV DB Refresh Hour</label>
+                    <div class="col-sm-9">
+                        <select class="form-control" id="refresh_hour" name="refresh_hour">
+                            % for i in config.get_hours():
+                                <option value="${i}" ${'selected="selected"' if config.refresh_hour==i else ''}>${i}</option>
+                            % endfor
+                        </select>
+                    </div>
+                </div>
                 <button type="submit" class="btn btn-primary btn-block">Submit</button>
             </form>
         </div>

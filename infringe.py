@@ -13,6 +13,7 @@ from urllib import request
 from mako.template import Template
 from mako.lookup import TemplateLookup
 from webutils import AjaxResponse
+from apscheduler.schedulers.background import BackgroundScheduler
 
 my_lookup = TemplateLookup(directories=['html'])
 config = Config()
@@ -111,6 +112,7 @@ class Infringer(object):
     @cherrypy.tools.json_out()
     def ajax_config(self):
         ar = AjaxResponse('Configuration updated...')
+
         try:
             data = cherrypy.request.json
             db = models.connect()
@@ -120,6 +122,9 @@ class Infringer(object):
             c.movies_directory = data['movies_directory']
             c.file_host_domain = data['file_host_domain']
             c.hd_format = data['hd_format']
+            c.scan_interval = data['scan_interval']
+            c.refresh_day = data['refresh_day']
+            c.refresh_hour = data['refresh_hour']
             is_restart = False
             if data['ip'] != c.ip or data['port'] != c.port:
                 is_restart = True
@@ -334,6 +339,12 @@ class Infringer(object):
         return status
 
 
+def tick():
+    print('Tick! The time is: %s' % datetime.now())
+
+def refresh_tvdb():
+    Utils.update_all()
+
 if __name__ == '__main__':
     conf = {
         '/': {
@@ -353,5 +364,14 @@ if __name__ == '__main__':
             'server.socket_host': config.ip,
             'server.socket_port': int(config.port),
         })
+
+    scan_schedule = BackgroundScheduler()
+    scan_schedule.add_job(LinkRetrieve.handle_downloads, 'cron', hour='*/' + str(config.scan_interval), id='scan_job')
+    scan_schedule.start()
+
+    refresh_schedule = BackgroundScheduler()
+    refresh_schedule.add_job(Utils.update_all, 'cron', day_of_week=config.refresh_day, hour=str(config.refresh_hour), id='refresh_job')
+
     my_infringer = Infringer()
     cherrypy.quickstart(my_infringer, '/', conf)
+
