@@ -18,6 +18,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 my_lookup = TemplateLookup(directories=['html'])
 config = Config()
 
+my_db = models.connect()
+
 
 class Infringer(object):
     @cherrypy.expose
@@ -25,19 +27,17 @@ class Infringer(object):
         if config is None:
             raise cherrypy.HTTPRedirect("/config")
         else:
-            s = models.connect()
             index_template = my_lookup.get_template('index.html')
-            upcoming_episodes = s.query(Episode).filter(Episode.air_date != None).filter(
+            upcoming_episodes = my_db.query(Episode).filter(Episode.air_date != None).filter(
                 Episode.status == 'Pending').order_by(Episode.air_date)[:25]
-            index_shows = s.query(Show).order_by(Show.show_name)
-            index_movies = s.query(Movie).filter(Movie.status == 'Ready').all()
+            index_shows = my_db.query(Show).order_by(Show.show_name)
+            index_movies = my_db.query(Movie).filter(Movie.status == 'Ready').all()
             return index_template.render(shows=index_shows, movies=index_movies, upcoming=upcoming_episodes)
 
     @cherrypy.expose
     def show(self, show_id):
-        s = models.connect()
         show_template = my_lookup.get_template('show.html')
-        current_show = s.query(Show).filter(Show.show_id == show_id).first()
+        current_show = my_db.query(Show).filter(Show.show_id == show_id).first()
         current_episodes = current_show.episodes.order_by(Episode.season_number.desc()).order_by(
             Episode.episode_number.desc()).all()
         return show_template.render(show=current_show, episodes=current_episodes)
@@ -48,13 +48,12 @@ class Infringer(object):
     def update_episode(self):
         status = 'success'
         try:
-            db = models.connect()
             data = cherrypy.request.json
             episode_id = data['episodeid']
             change_to_value = data['changeto']
-            e = db.query(Episode).filter(Episode.id == episode_id).first()
+            e = my_db.query(Episode).filter(Episode.id == episode_id).first()
             e.status = change_to_value
-            db.commit()
+            my_db.commit()
         except Exception as ex:
             ActionLog.log(ex)
             status = 'error'
@@ -75,11 +74,10 @@ class Infringer(object):
                 Utils.add_episodes(show_id)
 
             if action == 'remove':
-                db = models.connect()
-                s = db.query(Show).filter(Show.show_id == show_id).first()
+                s = my_db.query(Show).filter(Show.show_id == show_id).first()
                 ActionLog.log('"%s" removed.' % s.show_name)
-                db.delete(s)
-                db.commit()
+                my_db.delete(s)
+                my_db.commit()
 
         except Exception as ex:
             # logger.exception(ex)
@@ -89,22 +87,20 @@ class Infringer(object):
 
     @cherrypy.expose
     def log(self):
-        s = models.connect()
         log_template = my_lookup.get_template('log.html')
-        logs = s.query(ActionLog).order_by(ActionLog.time_stamp.desc()).all()
+        logs = my_db.query(ActionLog).order_by(ActionLog.time_stamp.desc()).all()
         return log_template.render(log=logs)
 
 
     @cherrypy.expose
     def config(self):
-        db = models.connect()
         config_template = my_lookup.get_template('config.html')
-        c = db.query(Config).first()
-        s = db.query(ScanURL).all()
+        c = my_db.query(Config).first()
+        s = my_db.query(ScanURL).all()
         if c is None:
             c = Config()
-            db.add(c)
-            db.commit()
+            my_db.add(c)
+            my_db.commit()
         return config_template.render(config=c, scanurls=s)
 
     @cherrypy.expose
@@ -115,8 +111,7 @@ class Infringer(object):
 
         try:
             data = cherrypy.request.json
-            db = models.connect()
-            c = db.query(Config).first()
+            c = my_db.query(Config).first()
             c.crawljob_directory = data['crawljob_directory']
             c.tv_parent_directory = data['tv_parent_directory']
             c.movies_directory = data['movies_directory']
@@ -130,7 +125,7 @@ class Infringer(object):
                 is_restart = True
             c.ip = data['ip']
             c.port = data['port']
-            db.commit()
+            my_db.commit()
         except Exception as ex:
             ar.status = 'error'
             ar.message = str(Exception)
@@ -163,20 +158,19 @@ class Infringer(object):
         ar = AjaxResponse('Data source updated...')
         try:
             data = cherrypy.request.json
-            db = models.connect()
             action = data['action']
             if action == 'add':
                 new_scanurl = ScanURL()
                 ar.message('Data source added...')
-                db.add(new_scanurl)
+                my_db.add(new_scanurl)
             else:
-                u = db.query(ScanURL).filter(ScanURL.id == data['id']).first()
+                u = my_db.query(ScanURL).filter(ScanURL.id == data['id']).first()
                 if action == 'update':
                     setattr(u, data['propertyName'], data['propertyValue'])
                 elif action == 'delete':
                     ar.message = 'Data source deleted...'
-                    db.delete(u)
-            db.commit()
+                    my_db.delete(u)
+            my_db.commit()
         except Exception as ex:
             ar.status = 'error'
             ar.message = str(Exception)
@@ -207,8 +201,8 @@ class Infringer(object):
             series_id = data['seriesid']
             t = tvdb_api.Tvdb()
             s = t[series_id]
-            db = models.connect()
-            if db.query(Show).filter(Show.show_id == series_id).first() is None:
+            # db = models.connect()
+            if my_db.query(Show).filter(Show.show_id == series_id).first() is None:
                 # save new show to db
                 first_aired_date = datetime.strptime(s['firstaired'], "%Y-%m-%d")
                 new_show = Show(show_id=series_id, show_name=s['seriesname'], first_aired=first_aired_date,
@@ -221,10 +215,10 @@ class Infringer(object):
                     os.makedirs(main_directory)
                 new_show.show_directory = main_directory
 
-                db.add(new_show)
-                db.commit()
+                my_db.add(new_show)
+                my_db.commit()
                 ActionLog.log('"%s" added.' % new_show.show_name)
-                Utils.add_episodes(series_id, t, db)
+                Utils.add_episodes(series_id, t, my_db)
             else:
                 status = 'duplicate'
                 # http://stackoverflow.com/questions/7753073/jquery-ajax-post-to-django-view
@@ -266,14 +260,13 @@ class Infringer(object):
             movie_id = data['movieid']
             is_ignore = data['isignore']
             is_cleanup = data['iscleanup']
-            db = models.connect()
 
             if is_cleanup:
-                db.query(Movie).filter(Movie.status == 'Ignored').delete()
-                db.commit()
+                my_db.query(Movie).filter(Movie.status == 'Ignored').delete()
+                my_db.commit()
                 ActionLog.log("DB cleanup completed")
             else:
-                m = db.query(Movie).filter(Movie.id == movie_id).first()
+                m = my_db.query(Movie).filter(Movie.id == movie_id).first()
                 if is_ignore:
                     m.status = 'Ignored'
                 else:
@@ -283,7 +276,7 @@ class Infringer(object):
                     LinkRetrieve.write_crawljob_file(m.name, config.movies_directory, jdownloader_string, config.crawljob_directory)
                     ActionLog.log('"%s\'s" .crawljob file created.' % m.name)
                     m.status = 'Retrieved'
-                db.commit()
+                my_db.commit()
         except Exception as ex:
             ActionLog.log('error - ' + ex)
             ar.status = 'error'
@@ -299,8 +292,8 @@ class Infringer(object):
         status = 'success'
         try:
             # data = cherrypy.request.json
-            db = models.connect()
-            m = db.query(Movie).filter(Movie.id == movie_id).first()
+            # db = models.connect()
+            m = my_db.query(Movie).filter(Movie.id == movie_id).first()
             omdb_api_link = m.get_IMDB_link()
             parsed = urllib.parse.urlparse(omdb_api_link)
             urllib.parse.urlparse(parsed.query)
@@ -339,11 +332,11 @@ class Infringer(object):
         return status
 
 
-def tick():
-    print('Tick! The time is: %s' % datetime.now())
+    @cherrypy.expose
+    def restart(self):
+        my_db.close()
+        cherrypy.engine.exit()
 
-def refresh_tvdb():
-    Utils.update_all()
 
 if __name__ == '__main__':
     conf = {
@@ -356,8 +349,7 @@ if __name__ == '__main__':
             'tools.staticdir.dir': './public'
         }
     }
-    connect_db = models.connect()
-    config = connect_db.query(models.Config).first()
+    config = my_db.query(models.Config).first()
 
     if config is not None:
         cherrypy.config.update({

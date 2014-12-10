@@ -58,6 +58,7 @@ def update_all():
     shows = db.query(Show).all()
     for s in shows:
         add_episodes(s.show_id, t, db, True)
+    db.close()
 
 
 if __name__ == "__main__":
