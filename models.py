@@ -1,7 +1,9 @@
 import urllib
+import cherrypy
 from sqlalchemy import Column, String, Integer, ForeignKey, Date, Boolean, DateTime, create_engine
 from sqlalchemy.orm import relationship, backref, sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
+from cherrypy.process import wspbus, plugins
 import os
 import re
 import datetime
@@ -38,7 +40,7 @@ class Episode(Base):
         return "%s s%se%s" % (self.show.show_name, str(self.season_number).zfill(2), str(self.episode_number).zfill(2))
 
     def get_episode_name(self):
-        return self.episode_name.replace('<','').replace('>','')
+        return self.episode_name.replace('<', '').replace('>', '')
 
 
 class ScanURL(Base):
@@ -46,9 +48,9 @@ class ScanURL(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String, default='myusername')
     password = Column(String, default='mypassword')
-    login_page = Column(String, default='http://tehparadox.com/forum/') #'http://tehparadox.com/forum/'
+    login_page = Column(String, default='http://tehparadox.com/forum/')  # 'http://tehparadox.com/forum/'
     url = Column(String, default='myurl')
-    media_type = Column(String, default='both') #can be tv, movies, or both
+    media_type = Column(String, default='both')  # can be tv, movies, or both
     priority = Column(Integer, nullable=True)
     link_select = Column(String, default='a')
     max_search_links = Column(Integer, default=300)
@@ -66,8 +68,8 @@ class Movie(Base):
     status = Column(String, default='Not Retrieved')
 
     def get_IMDB_link(self):
-        release_date_list = re.findall('[\(]?[0-9]{4}[\)]?',self.name)
-        #s = re.sub('[\(][0-9]{4}[\)]', '', self.name)
+        release_date_list = re.findall('[\(]?[0-9]{4}[\)]?', self.name)
+        # s = re.sub('[\(][0-9]{4}[\)]', '', self.name)
         s = self.name.replace('(', '|').replace('Part', '|').replace('Season', '|')
         s = s.split('|')[0].strip()
         s = re.split('[\(]?[0-9]{4}[\)]?', s)[0].strip().replace(' ', '+')
@@ -98,7 +100,7 @@ class ActionLog(Base):
 
     @staticmethod
     def log(msg):
-        #clean up the log file to keep it to the last 2000 records
+        # clean up the log file to keep it to the last 2000 records
         s = connect()
         l = ActionLog(time_stamp=datetime.datetime.now(), message=msg)
         s.add(l)
@@ -117,8 +119,8 @@ class Config(Base):
     crawljob_directory = Column(String, default='')
     tv_parent_directory = Column(String, default='')
     movies_directory = Column(String, default='')
-    file_host_domain = Column(String, default='uploaded.net') #'uploaded.net'
-    hd_format = Column(String, default='720p') # only 720p or 1080p
+    file_host_domain = Column(String, default='uploaded.net')  # 'uploaded.net'
+    hd_format = Column(String, default='720p')  # only 720p or 1080p
     ip = Column(String, default='127.0.0.1')
     port = Column(String, default='8080')
     scan_interval = Column(Integer, default=12)
@@ -134,14 +136,64 @@ class Config(Base):
         return list(range(2, 13))
 
 
-    #http://docs.sqlalchemy.org/en/rel_0_9/dialects/sqlite.html
+        # http://docs.sqlalchemy.org/en/rel_0_9/dialects/sqlite.html
+
+
 def connect():
     db_path = 'sqlite:///' + os.path.join(os.path.abspath(os.getcwd()), 'db.sqlite3')
     print(db_path)
-    #engine = create_engine('sqlite:///db.sqlite3', connect_args={'check_same_thread':False})
-    engine = create_engine(db_path, connect_args={'check_same_thread':False})
+    # engine = create_engine('sqlite:///db.sqlite3', connect_args={'check_same_thread':False})
+    engine = create_engine(db_path, connect_args={'check_same_thread': False})
     session_factory = sessionmaker()
     session_factory.configure(bind=engine)
     Base.metadata.create_all(engine)
     s = scoped_session(session_factory)
     return s
+
+
+# http://www.defuze.org/archives/222-integrating-sqlalchemy-into-a-cherrypy-application.html
+class SAEnginePlugin(plugins.SimplePlugin):
+    def __init__(self, bus):
+        plugins.SimplePlugin.__init__(self, bus)
+        self.sa_engine = None
+        self.bus.subscribe("bind", self.bind)
+
+    def start(self):
+        db_path = os.path.abspath(os.path.join(os.curdir, 'db.sqlite3'))
+        print('DB Path: %s' % db_path)
+        self.sa_engine = create_engine('sqlite:///%s' % db_path, echo=True)
+        Base.metadata.create_all(self.sa_engine)
+
+    def stop(self):
+        if self.sa_engine:
+            self.sa_engine.dispose()
+            self.sa_engine = None
+
+    def bind(self, session):
+        session.configure(bind=self.sa_engine)
+
+
+class SATool(cherrypy.Tool):
+    def __init__(self):
+        cherrypy.Tool.__init__(self, 'on_start_resource',
+                               self.bind_session,
+                               priority=20)
+        self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
+
+    def _setup(self):
+        cherrypy.Tool._setup(self)
+        cherrypy.request.hooks.attach('on_end_resource', self.commit_transaction, priority=80)
+
+    def bind_session(self):
+        cherrypy.engine.publish('bind', self.session)
+        cherrypy.request.db = self.session
+
+    def commit_transaction(self):
+        cherrypy.request.db = None
+        try:
+            self.session.commit()
+        except:
+            self.session.rollback()
+            raise
+        finally:
+            self.session.remove()

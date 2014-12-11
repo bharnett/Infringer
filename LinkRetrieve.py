@@ -123,6 +123,7 @@ def search_sites(list_of_shows):
                                     # movie.append(MovieURL(url=m))
                                 movie.status = "Ready"
                             db.commit()
+    db.remove()
 
 
 def source_login(source):

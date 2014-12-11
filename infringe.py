@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 import os.path
+import webbrowser
 import tvdb_api
 import LinkRetrieve
 import Utils
@@ -17,8 +18,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 my_lookup = TemplateLookup(directories=['html'])
 config = Config()
-
-my_db = models.connect()
+scan_refresh_scheduler = BackgroundScheduler()
+# cherrypy.request.db = models.connect()
 
 
 class Infringer(object):
@@ -28,16 +29,16 @@ class Infringer(object):
             raise cherrypy.HTTPRedirect("/config")
         else:
             index_template = my_lookup.get_template('index.html')
-            upcoming_episodes = my_db.query(Episode).filter(Episode.air_date != None).filter(
+            upcoming_episodes = cherrypy.request.db.query(Episode).filter(Episode.air_date != None).filter(
                 Episode.status == 'Pending').order_by(Episode.air_date)[:25]
-            index_shows = my_db.query(Show).order_by(Show.show_name)
-            index_movies = my_db.query(Movie).filter(Movie.status == 'Ready').all()
+            index_shows = cherrypy.request.db.query(Show).order_by(Show.show_name)
+            index_movies = cherrypy.request.db.query(Movie).filter(Movie.status == 'Ready').all()
             return index_template.render(shows=index_shows, movies=index_movies, upcoming=upcoming_episodes)
 
     @cherrypy.expose
     def show(self, show_id):
         show_template = my_lookup.get_template('show.html')
-        current_show = my_db.query(Show).filter(Show.show_id == show_id).first()
+        current_show = cherrypy.request.db.query(Show).filter(Show.show_id == show_id).first()
         current_episodes = current_show.episodes.order_by(Episode.season_number.desc()).order_by(
             Episode.episode_number.desc()).all()
         return show_template.render(show=current_show, episodes=current_episodes)
@@ -51,9 +52,9 @@ class Infringer(object):
             data = cherrypy.request.json
             episode_id = data['episodeid']
             change_to_value = data['changeto']
-            e = my_db.query(Episode).filter(Episode.id == episode_id).first()
+            e = cherrypy.request.db.query(Episode).filter(Episode.id == episode_id).first()
             e.status = change_to_value
-            my_db.commit()
+            cherrypy.request.db.commit()
         except Exception as ex:
             ActionLog.log(ex)
             status = 'error'
@@ -74,10 +75,10 @@ class Infringer(object):
                 Utils.add_episodes(show_id)
 
             if action == 'remove':
-                s = my_db.query(Show).filter(Show.show_id == show_id).first()
+                s = cherrypy.request.db.query(Show).filter(Show.show_id == show_id).first()
                 ActionLog.log('"%s" removed.' % s.show_name)
-                my_db.delete(s)
-                my_db.commit()
+                cherrypy.request.db.delete(s)
+                cherrypy.request.db.commit()
 
         except Exception as ex:
             # logger.exception(ex)
@@ -88,19 +89,19 @@ class Infringer(object):
     @cherrypy.expose
     def log(self):
         log_template = my_lookup.get_template('log.html')
-        logs = my_db.query(ActionLog).order_by(ActionLog.time_stamp.desc()).all()
+        logs = cherrypy.request.db.query(ActionLog).order_by(ActionLog.time_stamp.desc()).all()
         return log_template.render(log=logs)
 
 
     @cherrypy.expose
     def config(self):
         config_template = my_lookup.get_template('config.html')
-        c = my_db.query(Config).first()
-        s = my_db.query(ScanURL).all()
+        c = cherrypy.request.db.query(Config).first()
+        s = cherrypy.request.db.query(ScanURL).all()
         if c is None:
             c = Config()
-            my_db.add(c)
-            my_db.commit()
+            cherrypy.request.db.add(c)
+            cherrypy.request.db.commit()
         return config_template.render(config=c, scanurls=s)
 
     @cherrypy.expose
@@ -111,21 +112,43 @@ class Infringer(object):
 
         try:
             data = cherrypy.request.json
-            c = my_db.query(Config).first()
+            c = cherrypy.request.db.query(Config).first()
             c.crawljob_directory = data['crawljob_directory']
             c.tv_parent_directory = data['tv_parent_directory']
             c.movies_directory = data['movies_directory']
             c.file_host_domain = data['file_host_domain']
             c.hd_format = data['hd_format']
+
+            # check for changes that need a reschedule
+            if c.scan_interval != int(data['scan_interval']):
+                scan_refresh_scheduler.reschedule_job('scan_job', trigger='cron', hour='*/' + str(data['scan_interval']))
+
+            if c.refresh_day != data['refresh_day'] or c.refresh_hour != int(data['refresh_hour']):
+                scan_refresh_scheduler.reschedule_job('refresh_job', 'cron', day_of_week=data['refresh_day'], hour=str(data['refresh_hour']))
+
             c.scan_interval = data['scan_interval']
             c.refresh_day = data['refresh_day']
             c.refresh_hour = data['refresh_hour']
+
             is_restart = False
             if data['ip'] != c.ip or data['port'] != c.port:
                 is_restart = True
+
             c.ip = data['ip']
             c.port = data['port']
-            my_db.commit()
+            cherrypy.request.db.commit()
+
+            if is_restart:
+                cherrypy.engine.stop()
+                cherrypy.server.httpserver = None
+                cherrypy.config.update({
+                    'server.socket_host': c.ip,
+                    'server.socket_port': int(c.port),
+                })
+                cherrypy.engine.start()
+                ar.status = 'redirect'
+                ar.message = 'http://%s:%s/config' % (c.ip, c.port)
+
         except Exception as ex:
             ar.status = 'error'
             ar.message = str(Exception)
@@ -162,15 +185,15 @@ class Infringer(object):
             if action == 'add':
                 new_scanurl = ScanURL()
                 ar.message('Data source added...')
-                my_db.add(new_scanurl)
+                cherrypy.request.db.add(new_scanurl)
             else:
-                u = my_db.query(ScanURL).filter(ScanURL.id == data['id']).first()
+                u = cherrypy.request.db.query(ScanURL).filter(ScanURL.id == data['id']).first()
                 if action == 'update':
                     setattr(u, data['propertyName'], data['propertyValue'])
                 elif action == 'delete':
                     ar.message = 'Data source deleted...'
-                    my_db.delete(u)
-            my_db.commit()
+                    cherrypy.request.db.delete(u)
+            cherrypy.request.db.commit()
         except Exception as ex:
             ar.status = 'error'
             ar.message = str(Exception)
@@ -202,7 +225,7 @@ class Infringer(object):
             t = tvdb_api.Tvdb()
             s = t[series_id]
             # db = models.connect()
-            if my_db.query(Show).filter(Show.show_id == series_id).first() is None:
+            if cherrypy.request.db.query(Show).filter(Show.show_id == series_id).first() is None:
                 # save new show to db
                 first_aired_date = datetime.strptime(s['firstaired'], "%Y-%m-%d")
                 new_show = Show(show_id=series_id, show_name=s['seriesname'], first_aired=first_aired_date,
@@ -215,10 +238,10 @@ class Infringer(object):
                     os.makedirs(main_directory)
                 new_show.show_directory = main_directory
 
-                my_db.add(new_show)
-                my_db.commit()
+                cherrypy.request.db.add(new_show)
+                cherrypy.request.db.commit()
                 ActionLog.log('"%s" added.' % new_show.show_name)
-                Utils.add_episodes(series_id, t, my_db)
+                Utils.add_episodes(series_id, t, cherrypy.request.db)
             else:
                 status = 'duplicate'
                 # http://stackoverflow.com/questions/7753073/jquery-ajax-post-to-django-view
@@ -262,11 +285,11 @@ class Infringer(object):
             is_cleanup = data['iscleanup']
 
             if is_cleanup:
-                my_db.query(Movie).filter(Movie.status == 'Ignored').delete()
-                my_db.commit()
+                cherrypy.request.db.query(Movie).filter(Movie.status == 'Ignored').delete()
+                cherrypy.request.db.commit()
                 ActionLog.log("DB cleanup completed")
             else:
-                m = my_db.query(Movie).filter(Movie.id == movie_id).first()
+                m = cherrypy.request.db.query(Movie).filter(Movie.id == movie_id).first()
                 if is_ignore:
                     m.status = 'Ignored'
                 else:
@@ -276,7 +299,7 @@ class Infringer(object):
                     LinkRetrieve.write_crawljob_file(m.name, config.movies_directory, jdownloader_string, config.crawljob_directory)
                     ActionLog.log('"%s\'s" .crawljob file created.' % m.name)
                     m.status = 'Retrieved'
-                my_db.commit()
+                cherrypy.request.db.commit()
         except Exception as ex:
             ActionLog.log('error - ' + ex)
             ar.status = 'error'
@@ -293,7 +316,7 @@ class Infringer(object):
         try:
             # data = cherrypy.request.json
             # db = models.connect()
-            m = my_db.query(Movie).filter(Movie.id == movie_id).first()
+            m = cherrypy.request.db.query(Movie).filter(Movie.id == movie_id).first()
             omdb_api_link = m.get_IMDB_link()
             parsed = urllib.parse.urlparse(omdb_api_link)
             urllib.parse.urlparse(parsed.query)
@@ -334,22 +357,39 @@ class Infringer(object):
 
     @cherrypy.expose
     def restart(self):
-        my_db.close()
+        restart()
+
+    @cherrypy.expose
+    def shutdown(self):
+        shutdown_template = my_lookup.get_template('shutdown.html')
+        scan_refresh_scheduler.shutdown()
+        cherrypy.engine.stop()
+        cherrypy.server.httpserver = None
         cherrypy.engine.exit()
+        return shutdown_template.render()
 
 
-if __name__ == '__main__':
+def restart():
+    scan_refresh_scheduler.shutdown()
+    cherrypy.engine.exit()
+    startup()
+
+
+def startup():
     conf = {
         '/': {
             'tools.sessions.on': True,
-            'tools.staticdir.root': os.path.abspath(os.getcwd())
+            'tools.staticdir.root': os.path.abspath(os.getcwd()),
+            'tools.db.on': True
         },
         '/static': {
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': './public'
+            'tools.staticdir.dir': 'static'
         }
     }
-    config = my_db.query(models.Config).first()
+
+    config_session = models.connect()
+    config = config_session.query(models.Config).first()
 
     if config is not None:
         cherrypy.config.update({
@@ -357,13 +397,23 @@ if __name__ == '__main__':
             'server.socket_port': int(config.port),
         })
 
-    scan_schedule = BackgroundScheduler()
-    scan_schedule.add_job(LinkRetrieve.handle_downloads, 'cron', hour='*/' + str(config.scan_interval), id='scan_job')
-    scan_schedule.start()
+    config_session.remove()
 
-    refresh_schedule = BackgroundScheduler()
-    refresh_schedule.add_job(Utils.update_all, 'cron', day_of_week=config.refresh_day, hour=str(config.refresh_hour), id='refresh_job')
+    scan_refresh_scheduler.add_job(LinkRetrieve.handle_downloads, 'cron', hour='*/' + str(config.scan_interval), id='scan_job')
+    scan_refresh_scheduler.add_job(Utils.update_all, 'cron', day_of_week=config.refresh_day, hour=str(config.refresh_hour), id='refresh_job')
+    scan_refresh_scheduler.start()
 
     my_infringer = Infringer()
-    cherrypy.quickstart(my_infringer, '/', conf)
+    models.SAEnginePlugin(cherrypy.engine).subscribe()
+    cherrypy.tools.db = models.SATool()
+    cherrypy.tree.mount(Infringer(), '/', conf)
+    cherrypy.engine.start()
+    webbrowser.get().open('http://%s:%s' % (cherrypy.config['server.socket_host'], str(cherrypy.config['server.socket_port'])))
+    cherrypy.engine.block()
+
+
+
+if __name__ == '__main__':
+    startup()
+
 

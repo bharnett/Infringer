@@ -14,212 +14,237 @@
 </head>
 <body>
 <div class="container-fluid">
-    <div class="row">
-        <div class="col-md-2 col-md-offset-2">
-            <a class="btn btn-default" role="button" href="/index" style="margin-top: 15px; float:right;">
-                <i class="fa fa-home"></i> home</a>
-        </div>
-        <div class="col-md-4">
-            <h3 style="text-align: center;">Configuration</h3>
-        </div>
+<div class="row">
+    <div class="col-md-2 col-md-offset-2">
+        <a class="btn btn-default" role="button" href="/index" style="margin-top: 15px; float:right;">
+            <i class="fa fa-home"></i> home</a>
     </div>
-    <div class="row">
-        <div class="col-md-8 col-md-offset-2">
-            <div id="config_alert" class="alert alert-success" role="alert" style="display:none;"></div>
-        </div>
+    <div class="col-md-4">
+        <h3 style="text-align: center;">Configuration</h3>
     </div>
-    <div class="row">
-        <div class="col-md-8 col-md-offset-2">
-            <form id="frm_config" class="form-horizontal" role="form" action="/ajax_config" method="POST">
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="crawljob_directory">.crawljob directory</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="crawljob_directory"
-                               name="crawljob_directory"
-                               value="${config.crawljob_directory}">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="tv_parent_directory">tv parent directory</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="tv_parent_directory"
-                               name="tv_parent_directory"
-                               value="${config.tv_parent_directory}">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="movies_directory">movies directory</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="movies_directory"
-                               name="movies_directory"
-                               value="${config.movies_directory}">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="file_host_domain">file host domain</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="file_host_domain"
-                               name="file_host_domain"
-                               value="${config.file_host_domain}">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="hd_format">hd video format</label>
-
-                    <div class="col-sm-9">
-                        <select class="form-control" id="hd_format" name="hd_format">
-                            <option ${'selected="selected"' if config.hd_format=='720p' else ''}>720p</option>
-                            <option ${'selected="selected"' if config.hd_format=='1080p' else ''}>1080p</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="ip">server host ip</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="ip" name="ip"
-                               value="${config.ip}">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="port">server port</label>
-
-                    <div class="col-sm-9">
-                        <input type="text" class="form-control" id="port" name="port"
-                               value="${config.port}">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="scan_interval">Show Scan Interval (starting at midnight)</label>
-
-                    <div class="col-sm-9">
-                        <select class="form-control" id="scan_interval" name="scan_interval">
-                            % for i in config.get_intervals():
-                                <option value="${i}" ${'selected="selected"' if config.scan_interval==i else ''}>${i}</option>
-                            % endfor
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="refresh_day">TV DB Refresh Day</label>
-                    <div class="col-sm-9">
-                        <select class="form-control" id="refresh_day" name="refresh_day">
-                            <option value="sun" ${'selected="selected"' if config.refresh_day=='sun' else ''}>Sunday</option>
-                            <option value="mon" ${'selected="selected"' if config.refresh_day=='mon' else ''}>Monday</option>
-                            <option value="tue" ${'selected="selected"' if config.refresh_day=='tue' else ''}>Tuesday</option>
-                            <option value="wed" ${'selected="selected"' if config.refresh_day=='wed' else ''}>Wednesday</option>
-                            <option value="thu" ${'selected="selected"' if config.refresh_day=='thu' else ''}>Thursday</option>
-                            <option value="fri" ${'selected="selected"' if config.refresh_day=='fri' else ''}>Friday</option>
-                            <option value="sat" ${'selected="selected"' if config.refresh_day=='sat' else ''}>Saturday</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="col-sm-3 control-label" for="refresh_hour">TV DB Refresh Hour</label>
-                    <div class="col-sm-9">
-                        <select class="form-control" id="refresh_hour" name="refresh_hour">
-                            % for i in config.get_hours():
-                                <option value="${i}" ${'selected="selected"' if config.refresh_hour==i else ''}>${i}</option>
-                            % endfor
-                        </select>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Submit</button>
-            </form>
-        </div>
+</div>
+<div class="row">
+    <div class="col-md-8 col-md-offset-2">
+        <div id="config_alert" class="alert alert-success" role="alert" style="display:none;"></div>
     </div>
-    <div class="row">
-        <div class="col-md-10 col-md-offset-1">
-            <hr>
-            <h4>Data Sources</h4>
+</div>
+<div class="row">
+    <div class="col-md-8 col-md-offset-2">
+        <form id="frm_config" class="form-horizontal" role="form" action="/ajax_config" method="POST">
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="crawljob_directory">.crawljob directory</label>
 
-            <div class="alert alert-success" role="alert" style="display:none;"></div>
-        </div>
-    </div>
-    <div class="col-md-10 col-md-offset-1">
-        <form id="frm_datasources">
-            <table id="datasource-table" class="table table-condensed">
-                <thead>
-                <tr>
-                    <th>domain</th>
-                    <th>username</th>
-                    <th>password</th>
-                    <th>login page</th>
-                    <th>scan url</th>
-                    <th>media type</th>
-                    <th>priority</th>
-                    <th>css link select</th>
-                    <th>max search links</th>
-                    <th></th>
-                </tr>
-                </thead>
-                <tbody>
-                    % for s in scanurls:
-                        <tr>
-                            <td class="form-group"><input type="hidden" value="${s.id}" id="id" name="id">
-                                <input type="text" class="form-control input-sm" id="domain" name="domain"
-                                       value="${s.domain}">
-                            </td>
-                            <td class="form-group">
-                                <input type="text" class="form-control input-sm" id="username" name="username"
-                                       value="${s.username}">
-                            </td>
-                            <td class="form-group">
-                                <input type="text" class="form-control input-sm" id="password" name="password"
-                                       value="${s.password}">
-                            </td>
-                            <td class="form-group">
-                                <input type="text" class="form-control input-sm" id="login_page" name="login_page"
-                                       value="${s.login_page}">
-                            </td>
-                            <td class="form-group">
-                                <input type="text" class="form-control input-sm" id="url" name="url" value="${s.url}">
-                            </td>
-                            <td class="form-group">
-                                <select class="form-control input-sm" id="media_type" name="media_type">
-                                    <option ${'selected="selected"' if s.media_type=='both' else ''}>both</option>
-                                    <option ${'selected="selected"' if s.media_type=='tv' else ''}>tv</option>
-                                    <option ${'selected="selected"' if s.media_type=='movies' else ''}>movies
-                                    </option>
-                                </select>
-                            </td>
-                            <td class="form-group">
-                                <select class="form-control input-sm" id="priority" name="priority">
-                                    %for i in range(1, len(scanurls)+1):
-                                        <option ${'selected="selected"' if s.priority==i else ''}>${i}</option>
-                                    %endfor
-                                </select>
-                            </td>
-                            <td class="form-group">
-                                <input type="text" class="form-control input-sm" id="link_select" name="link_select"
-                                       value="${s.link_select}">
-                            </td>
-                            <td class="form-group">
-                                <select class="form-control input-sm" id="max_search_link" name="max_search_link">
-                                    %for i in range(50, 800,50):
-                                        <option ${'selected="selected"' if s.max_search_links==i else ''}>${i}</option>
-                                    %endfor
-                                </select>
-                            </td>
-                            <td class="form-group"><span class="glyphicon glyphicon-remove-sign deleter"
-                                                         style="cursor: pointer;"
-                                                         aria-hidden="true"></span></td>
-                        </tr>
-                    % endfor
-                <tr>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-success adder"><span
-                                class="glyphicon glyphicon-plus-sign"></span> Add Data Source
-                        </button>
-                </tr>
-                </tbody>
-            </table>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="crawljob_directory"
+                           name="crawljob_directory"
+                           value="${config.crawljob_directory}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="tv_parent_directory">tv parent directory</label>
+
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="tv_parent_directory"
+                           name="tv_parent_directory"
+                           value="${config.tv_parent_directory}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="movies_directory">movies directory</label>
+
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="movies_directory"
+                           name="movies_directory"
+                           value="${config.movies_directory}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="file_host_domain">file host domain</label>
+
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="file_host_domain"
+                           name="file_host_domain"
+                           value="${config.file_host_domain}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="hd_format">hd video format</label>
+
+                <div class="col-sm-9">
+                    <select class="form-control" id="hd_format" name="hd_format">
+                        <option ${'selected="selected"' if config.hd_format=='720p' else ''}>720p</option>
+                        <option ${'selected="selected"' if config.hd_format=='1080p' else ''}>1080p</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="ip">server host ip</label>
+
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="ip" name="ip"
+                           value="${config.ip}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="port">server port</label>
+
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="port" name="port"
+                           value="${config.port}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="scan_interval">Show Scan Interval (starting at
+                    midnight)</label>
+
+                <div class="col-sm-9">
+                    <select class="form-control" id="scan_interval" name="scan_interval">
+                        % for i in config.get_intervals():
+                            <option value="${i}" ${'selected="selected"' if config.scan_interval==i else ''}>${i}</option>
+                        % endfor
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="refresh_day">TV DB Refresh Day</label>
+
+                <div class="col-sm-9">
+                    <select class="form-control" id="refresh_day" name="refresh_day">
+                        <option value="sun" ${'selected="selected"' if config.refresh_day=='sun' else ''}>Sunday
+                        </option>
+                        <option value="mon" ${'selected="selected"' if config.refresh_day=='mon' else ''}>Monday
+                        </option>
+                        <option value="tue" ${'selected="selected"' if config.refresh_day=='tue' else ''}>Tuesday
+                        </option>
+                        <option value="wed" ${'selected="selected"' if config.refresh_day=='wed' else ''}>Wednesday
+                        </option>
+                        <option value="thu" ${'selected="selected"' if config.refresh_day=='thu' else ''}>Thursday
+                        </option>
+                        <option value="fri" ${'selected="selected"' if config.refresh_day=='fri' else ''}>Friday
+                        </option>
+                        <option value="sat" ${'selected="selected"' if config.refresh_day=='sat' else ''}>Saturday
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="refresh_hour">TV DB Refresh Hour</label>
+
+                <div class="col-sm-9">
+                    <select class="form-control" id="refresh_hour" name="refresh_hour">
+                        % for i in config.get_hours():
+                            <option value="${i}" ${'selected="selected"' if config.refresh_hour==i else ''}>${i}</option>
+                        % endfor
+                    </select>
+                </div>
+            </div>
+            <div class="btn-group btn-group-justified" role="group" aria-label="...">
+                <div class="btn-group" role="group">
+                    <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-save"></span>
+                    Save</button>
+                </div>
+                <div class="btn-group" role="group">
+                    <a href="/restart" type="button" class="btn btn-primary"><span class="glyphicon glyphicon-repeat"></span>
+                        Restart
+                    </a>
+                </div>
+                <div class="btn-group" role="group">
+                    <a href="/shutdown" type="button" class="btn btn-danger"><span class="glyphicon glyphicon-warning-sign"></span>
+                        Shutdown
+                    </a>
+                </div>
+            </div>
         </form>
     </div>
+</div>
+<div class="row">
+    <div class="col-md-10 col-md-offset-1">
+        <hr>
+        <h4>Data Sources</h4>
+
+        <div class="alert alert-success" role="alert" style="display:none;"></div>
+    </div>
+</div>
+<div class="col-md-10 col-md-offset-1">
+    <form id="frm_datasources">
+        <table id="datasource-table" class="table table-condensed">
+            <thead>
+            <tr>
+                <th>domain</th>
+                <th>username</th>
+                <th>password</th>
+                <th>login page</th>
+                <th>scan url</th>
+                <th>media type</th>
+                <th>priority</th>
+                <th>css link select</th>
+                <th>max search links</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+                % for s in scanurls:
+                    <tr>
+                        <td class="form-group"><input type="hidden" value="${s.id}" id="id" name="id">
+                            <input type="text" class="form-control input-sm" id="domain" name="domain"
+                                   value="${s.domain}">
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="username" name="username"
+                                   value="${s.username}">
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="password" name="password"
+                                   value="${s.password}">
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="login_page" name="login_page"
+                                   value="${s.login_page}">
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="url" name="url" value="${s.url}">
+                        </td>
+                        <td class="form-group">
+                            <select class="form-control input-sm" id="media_type" name="media_type">
+                                <option ${'selected="selected"' if s.media_type=='both' else ''}>both</option>
+                                <option ${'selected="selected"' if s.media_type=='tv' else ''}>tv</option>
+                                <option ${'selected="selected"' if s.media_type=='movies' else ''}>movies
+                                </option>
+                            </select>
+                        </td>
+                        <td class="form-group">
+                            <select class="form-control input-sm" id="priority" name="priority">
+                                %for i in range(1, len(scanurls)+1):
+                                    <option ${'selected="selected"' if s.priority==i else ''}>${i}</option>
+                                %endfor
+                            </select>
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="link_select" name="link_select"
+                                   value="${s.link_select}">
+                        </td>
+                        <td class="form-group">
+                            <select class="form-control input-sm" id="max_search_link" name="max_search_link">
+                                %for i in range(50, 800,50):
+                                    <option ${'selected="selected"' if s.max_search_links==i else ''}>${i}</option>
+                                %endfor
+                            </select>
+                        </td>
+                        <td class="form-group"><span class="glyphicon glyphicon-remove-sign deleter"
+                                                     style="cursor: pointer;"
+                                                     aria-hidden="true"></span></td>
+                    </tr>
+                % endfor
+            <tr>
+                <td>
+                    <button type="button" class="btn btn-sm btn-success adder"><span
+                            class="glyphicon glyphicon-plus-sign"></span> Add Data Source
+                    </button>
+            </tr>
+            </tbody>
+        </table>
+    </form>
+</div>
 </div>
 
 </body>
@@ -312,7 +337,7 @@
                 }
             },
             submitHandler: function (form) {
-                $(form).submit(function (e) {
+##                $(form).submit(function (e) {
                     var formData = $(form).serializeArray();
                     var data = {};
                     $(form).serializeArray().map(function (x) {
@@ -330,11 +355,17 @@
                         },
                         success: function (data) {
                             var ar = $.parseJSON($.parseJSON(data));
-                            showStatus(ar.status == 'error', ar.message);
+                            if (ar.status == 'redirect')
+                            {
+                                window.location.href = ar.message;
+                            }
+                            else {
+                                showStatus(ar.status == 'error', ar.message);
+                            }
                         }
                     });
-                    e.preventDefault();
-                });
+##                    form.preventDefault();
+##                });
             }
         });
 
