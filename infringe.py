@@ -17,7 +17,6 @@ from webutils import AjaxResponse
 from apscheduler.schedulers.background import BackgroundScheduler
 
 my_lookup = TemplateLookup(directories=['html'])
-config = Config()
 scan_refresh_scheduler = BackgroundScheduler()
 # cherrypy.request.db = models.connect()
 
@@ -25,6 +24,7 @@ scan_refresh_scheduler = BackgroundScheduler()
 class Infringer(object):
     @cherrypy.expose
     def index(self):
+        config = cherrypy.request.db.query(Config).first()
         if config is None:
             raise cherrypy.HTTPRedirect("/config")
         else:
@@ -111,6 +111,7 @@ class Infringer(object):
         ar = AjaxResponse('Configuration updated...')
 
         try:
+            is_restart = False
             data = cherrypy.request.json
             c = cherrypy.request.db.query(Config).first()
             c.crawljob_directory = data['crawljob_directory']
@@ -130,7 +131,7 @@ class Infringer(object):
             c.refresh_day = data['refresh_day']
             c.refresh_hour = data['refresh_hour']
 
-            is_restart = False
+
             if data['ip'] != c.ip or data['port'] != c.port:
                 is_restart = True
 
@@ -232,11 +233,10 @@ class Infringer(object):
                                 is_active=s.data['status'] == 'Continuing', banner=s['banner'])
 
                 # create folder based on show name:
-                main_directory = os.path.join(config.tv_parent_directory,
-                                              new_show.show_name.replace('.', '').strip())
-                if not os.path.exists(main_directory):
-                    os.makedirs(main_directory)
-                new_show.show_directory = main_directory
+                new_show.show_directory = '/' + new_show.show_name.replace('.', '').strip()
+                phys_directory = cherrypy.request.db.query(Config).first().tv_parent_directory + new_show.show_directory
+                if not os.path.exists(phys_directory):
+                    os.makedirs(phys_directory)
 
                 cherrypy.request.db.add(new_show)
                 cherrypy.request.db.commit()
@@ -283,7 +283,7 @@ class Infringer(object):
             movie_id = data['movieid']
             is_ignore = data['isignore']
             is_cleanup = data['iscleanup']
-
+            config = cherrypy.request.db.query(Config).first()
             if is_cleanup:
                 cherrypy.request.db.query(Movie).filter(Movie.status == 'Ignored').delete()
                 cherrypy.request.db.commit()
@@ -403,7 +403,6 @@ def startup():
     scan_refresh_scheduler.add_job(Utils.update_all, 'cron', day_of_week=config.refresh_day, hour=str(config.refresh_hour), id='refresh_job')
     scan_refresh_scheduler.start()
 
-    my_infringer = Infringer()
     models.SAEnginePlugin(cherrypy.engine).subscribe()
     cherrypy.tools.db = models.SATool()
     cherrypy.tree.mount(Infringer(), '/', conf)

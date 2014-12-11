@@ -169,11 +169,12 @@ def get_episode_list():
             # remove dates from show names (2014), (2009) for accurate string searches
             edited_show_name = re.sub('[\(][0-9]{4}[\)]', '', s.show_name)
             episode_id_string = 's%se%s' % (str(e.season_number).zfill(2), str(e.episode_number).zfill(2))
+            show_dir = config.tv_parent_directory + s.show_directory
+            if not os.path.exists(show_dir):
+                os.makedirs(show_dir)
+            search_episode = Searcher(e.id, episode_id_string, '', show_dir)
 
-            search_episode = Searcher(e.id, episode_id_string, '', s.show_directory)
-            #search_episode.search_list.append(edited_show_name.lower())  # regular show name
-
-            for char in edit_chars:  #this could be tightened up a bit to remove duplicates, but it works fine
+            for char in edit_chars:  # this could be tightened up a bit to remove duplicates, but it works fine
                 char_edit_name = edited_show_name.replace(char[0], char[1]).strip().lower()
                 search_episode.search_list.append(char_edit_name)
                 for second in second_chars:
