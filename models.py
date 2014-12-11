@@ -137,6 +137,7 @@ class Config(Base):
     #http://docs.sqlalchemy.org/en/rel_0_9/dialects/sqlite.html
 def connect():
     db_path = 'sqlite:///' + os.path.join(os.path.abspath(os.getcwd()), 'db.sqlite3')
+    print(db_path)
     #engine = create_engine('sqlite:///db.sqlite3', connect_args={'check_same_thread':False})
     engine = create_engine(db_path, connect_args={'check_same_thread':False})
     session_factory = sessionmaker()

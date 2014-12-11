@@ -133,7 +133,7 @@ def source_login(source):
     except Exception as ex:
         return None
 
-    if login_page.status_code == 200:
+    if login_page.status_code == 200 and len(login_page.soup.select('form')) > 0:
 
         if 'tehparadox.com' in source.domain:
             login_form = login_page.soup.select('form')[0]
