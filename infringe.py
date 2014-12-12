@@ -399,8 +399,8 @@ def startup():
 
     config_session.remove()
 
-    scan_refresh_scheduler.add_job(LinkRetrieve.handle_downloads, 'cron', hour='*/' + str(config.scan_interval), id='scan_job')
-    scan_refresh_scheduler.add_job(Utils.update_all, 'cron', day_of_week=config.refresh_day, hour=str(config.refresh_hour), id='refresh_job')
+    scan_refresh_scheduler.add_job(LinkRetrieve.handle_downloads, 'cron', hour='*/' + str(config.scan_interval), id='scan_job', misfire_grace_time=60)
+    scan_refresh_scheduler.add_job(Utils.update_all, 'cron', day_of_week=config.refresh_day, hour=str(config.refresh_hour), id='refresh_job', misfire_grace_time=60)
     scan_refresh_scheduler.start()
 
     models.SAEnginePlugin(cherrypy.engine).subscribe()
