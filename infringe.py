@@ -15,8 +15,8 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 from webutils import AjaxResponse
 from apscheduler.schedulers.background import BackgroundScheduler
-
-my_lookup = TemplateLookup(directories=['html'])
+template_dir = os.path.dirname(os.path.normpath(os.path.abspath(__file__))) + '/html'
+my_lookup = TemplateLookup(directories=[template_dir])
 scan_refresh_scheduler = BackgroundScheduler()
 # cherrypy.request.db = models.connect()
 

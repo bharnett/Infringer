@@ -22,6 +22,7 @@ class Searcher(object):
         self.link = link
         self.found = False
         self.directory = directory
+        self.retrieved = False
         self.search_list = []
 
     def __str__(self):
@@ -63,6 +64,7 @@ def search_sites(list_of_shows):
         browser = source_login(source)
         if browser is None:
             ActionLog.log('%s could not logon' % source.login_page)
+            continue
         else:
             ActionLog.log('Scanning %s for %s' % (source.domain, source.media_type))
             soup = browser.get(source.url).soup
@@ -77,7 +79,7 @@ def search_sites(list_of_shows):
                         if tv_is_completed:  # takes care of 'both' media type sources
                             continue
                         else:
-                            for show_searcher in [x for x in list_of_shows if not x.found]:
+                            for show_searcher in [x for x in list_of_shows if not x.found and not x.retrieved]:
                                 link_text = link.text.lower()
                                 if show_searcher.search_me(link_text):
                                     show_searcher.link = urljoin(source.domain, link.get('href'))
@@ -85,7 +87,7 @@ def search_sites(list_of_shows):
                                     ActionLog.log('"%s" found!' % show_searcher)
 
             # open links and get download links for TV
-            for show_searcher in list_of_shows:
+            for show_searcher in [l for l in list_of_shows if not l.retrieved]:
                 if not show_searcher.found:
                     ActionLog.log("%s not found in soup" % str(show_searcher))
                     continue
@@ -96,7 +98,7 @@ def search_sites(list_of_shows):
 
                     write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
                                         config.crawljob_directory)
-
+                    show_searcher.retrieved = True
                     # use episode id to update database
                     db_episode = db.query(Episode).filter(
                         Episode.id == show_searcher.episode_id).first()  # models.Episode.objects.get(pk=show_searcher.episode_id)

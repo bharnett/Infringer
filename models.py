@@ -140,10 +140,13 @@ class Config(Base):
 
 
 def connect():
-    db_path = 'sqlite:///' + os.path.join(os.path.abspath(os.getcwd()), 'db.sqlite3')
-    print(db_path)
+    data_file = os.path.normpath(os.path.abspath(__file__))
+    print(data_file)
+    data_dir = os.path.dirname(data_file)
+    db_path = data_dir + '/db.sqlite3'
+    print('DB Path: %s' % db_path)
     # engine = create_engine('sqlite:///db.sqlite3', connect_args={'check_same_thread':False})
-    engine = create_engine(db_path, connect_args={'check_same_thread': False})
+    engine = create_engine('sqlite:///%s' % db_path, echo=True)
     session_factory = sessionmaker()
     session_factory.configure(bind=engine)
     Base.metadata.create_all(engine)
@@ -159,7 +162,10 @@ class SAEnginePlugin(plugins.SimplePlugin):
         self.bus.subscribe("bind", self.bind)
 
     def start(self):
-        db_path = os.path.abspath(os.path.join(os.curdir, 'db.sqlite3'))
+        data_file = os.path.normpath(os.path.abspath(__file__))
+        print(data_file)
+        data_dir = os.path.dirname(data_file)
+        db_path = data_dir + '/db.sqlite3'
         print('DB Path: %s' % db_path)
         self.sa_engine = create_engine('sqlite:///%s' % db_path, echo=True)
         Base.metadata.create_all(self.sa_engine)
