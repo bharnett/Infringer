@@ -14,6 +14,8 @@ All javascript references are held in CDNs:
 <ul>
 <li>pNotify</li>
 <li>nicescroll</li>
+<li>jquery 1.11</li>
+<li>Bootstrap 3</li>
 </ul>
 
 <ul>
