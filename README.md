@@ -1,6 +1,6 @@
 This is a Python 3 & Cherrypy program to manage and retrieve TV & movie information of web sites. It uses the following Python libraries so make sure you
-install those first before attempting to run the program! It isn't much good with <a href="http://board.jdownloader.org/showthread.php?t=54725">JDownloader2</a> and its .crawljob file processing ability. Make sure you set up the folder watch and auto-confirm settings for full automation.
-install those first before attempting to run the program! It isn't much good with jdownloader2 and its .crawljob file processing ability.
+install those first before attempting to run the program! It isn't much good with <a href="http://board.jdownloader.org/showthread.php?t=54725">JDownloader2</a> and its .crawljob file processing ability. Make sure you set up the jDownloader2's folder watch and auto-confirm settings for full automation.
+
 <ul>
 <li>Cherrypy</li>
 <li>Mako</li>
