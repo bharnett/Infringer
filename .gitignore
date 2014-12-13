@@ -47,3 +47,7 @@ Temporary Items
 .idea/Infringer.iml
 
 .idea/workspace.xml
+
+*.pyc
+
+*.pyc
