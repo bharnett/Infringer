@@ -17,6 +17,6 @@ All javascript references are held in CDNs:
 </ul>
 
 <ul>
-<li>Once you've downloaded the repo, just call 'python3 [DIRECTORY/OF/REPO]/Infringer/infringe.py' and it will start right up. The default listener is 127.0.0.1:8080 but can be changed in the config. Changing requires a full shutdown of Python and the terminal because I haven't figure this part out yet.</li>
-<li>For automation, I recommend <a href="http://www.soma-zone.com/LaunchControl/">Launch Control for Mac</a> or Task Scheduler for Windows. The config allows you to configure a scan interval and weekly refresh of TVDB stuff automatically.  Updating those requires a restart of the program.  The 'LinkRetriever.py' file can also be called independently to scan the web while 'webutils.py' can be called independantly to refresh all shows for new/updated episodes.</li>
+<li>Once you've downloaded the repo, just call 'python3 [DIRECTORY/OF/REPO]/Infringer/infringe.py' and it will start right up. The default listener is 127.0.0.1:8080 but can be changed in the config. Changing the scheduling or port/ip will make the app restart with those settings.</li>
+<li>For automation, I recommend <a href="http://www.soma-zone.com/LaunchControl/">Launch Control for Mac</a> or Task Scheduler for Windows. The config allows you to configure a scan interval and weekly refresh of TVDB stuff automatically.  Updating those requires a restart of the program.  Make sure to use the working directory argument in LauncControl/Launchd in OS X that points to the parent directory of the infringe.py file.</li>
 </ul>
