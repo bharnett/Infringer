@@ -3,6 +3,7 @@ Thumbs.db
 ehthumbs.db
 /.idea/Infringer.iml
 /.workspace.xml
+db.sqlite3
 
 # Folder config file
 Desktop.ini
