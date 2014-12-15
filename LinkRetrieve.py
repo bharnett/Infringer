@@ -98,6 +98,7 @@ def search_sites(list_of_shows):
 
                     write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
                                         config.crawljob_directory)
+                    ActionLog.log('"%s\'s" .crawljob file created.' % str(show_searcher))
                     show_searcher.retrieved = True
                     # use episode id to update database
                     db_episode = db.query(Episode).filter(
