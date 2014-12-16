@@ -135,6 +135,15 @@ class Config(Base):
     def get_intervals():
         return list(range(2, 13))
 
+    def domain_link_check(self, link):
+        domains = self.file_host_domain.split(',')
+        file_host_exists = False
+        for d in domains:
+            if d.strip() in link:
+                file_host_exists = True
+                break
+        return file_host_exists
+
 
         # http://docs.sqlalchemy.org/en/rel_0_9/dialects/sqlite.html
 

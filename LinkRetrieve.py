@@ -236,8 +236,8 @@ def get_download_links(soup, config, domain, hd_format='720p'):
 
     check_links = '\n'.join(all_links).split('\n')
 
-    for l in check_links:
-        if config.file_host_domain in l and l[-3:].lower() != 'srt':  # ignore .srt files
+    for l in [x for x in check_links if not x.strip() == '']:
+        if config.domain_link_check(l) and l[-3:].lower() != 'srt':  # ignore .srt files
             ul = UploadLink(l)
             uploaded_links.append(ul)
 
