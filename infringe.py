@@ -185,7 +185,7 @@ class Infringer(object):
             action = data['action']
             if action == 'add':
                 new_scanurl = ScanURL()
-                ar.message('Data source added...')
+                ar.message = 'Data source added...'
                 cherrypy.request.db.add(new_scanurl)
             else:
                 u = cherrypy.request.db.query(ScanURL).filter(ScanURL.id == data['id']).first()

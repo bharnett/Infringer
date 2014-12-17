@@ -252,7 +252,7 @@
     $(document).ready(function () {
         $('#datasource-table input, select').change(function () {
             if ($(this).valid()) {
-                updateDataSource
+                updateDataSource(this);
             }
         });
 
@@ -403,14 +403,14 @@
         });
     });
 
-    function updateDataSource() {
-        var row = $(this).closest('tr')
+    function updateDataSource(e) {
+        var row = $(e).closest('tr')
         var id = $(row).find('input:hidden').val();
-        var propertyName = $(this).attr('id');
-        var propertyValue = $(this).val();
+        var propertyName = $(e).attr('id');
+        var propertyValue = $(e).val();
         var action = 'update'
-        if ($(this).hasClass('deleter')) action = 'delete';
-        if ($(this).hasClass('adder')) action = 'add';
+        if ($(e).hasClass('deleter')) action = 'delete';
+        if ($(e).hasClass('adder')) action = 'add';
 
         data = {id: id, propertyName: propertyName, propertyValue: propertyValue, action: action};
         $.ajax({

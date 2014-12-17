@@ -125,6 +125,7 @@ def search_sites(list_of_shows):
                                     db.commit()
                                     # movie.append(MovieURL(url=m))
                                 movie.status = "Ready"
+                                ActionLog.log('"%s" added to downloadable movies' % m.name)
                             db.commit()
     db.remove()
 
@@ -145,7 +146,7 @@ def source_login(source):
             login_form.select("#navbar_password")[0]['value'] = source.password
             response_page = browser.submit(login_form, login_page.url)
             return browser
-        elif 'warez-bb.org' in source.domain:
+        elif 'warez-bb.org' in source.domain or 'x264-bb.com' in source.domain:
             login_form = login_page.soup.select('form')[0]
             login_form.findAll("input", {"type": "text"})[0]['value'] = source.username
             login_form.findAll("input", {"type": "password"})[0]['value'] = source.password
@@ -209,7 +210,6 @@ def process_movie_link(db, link):
             m = Movie(name=edited_link_text, link_text=link.get('href'), status='Not Retrieved')
             db.add(m)
             db.commit()
-            ActionLog.log('"%s" added to downloadable movies' % m.name)
         return True
     else:
         return False
@@ -229,6 +229,10 @@ def get_download_links(soup, config, domain, hd_format='720p'):
     elif 'warez-bb.org' in domain:
         code_elements = soup.select('.code span')
         if len(code_elements) == 0: return []
+        for c in code_elements:
+            all_links.append(c.text)
+    elif 'x264-bb.com' in domain:
+        code_elements = soup.select('.codemain pre')
         for c in code_elements:
             all_links.append(c.text)
     else:
