@@ -256,7 +256,9 @@
             }
         });
 
-        $('.adder, .deleter').click(updateDataSource);
+        $('.adder, .deleter').click(function(){
+            updateDataSource(this);
+        });
 
         $.validator.addMethod('domainChecker', function (value) {
             return /^[A-Za-z0-9-]{1,63}\.+[A-Za-z]{2,6}$/.test(value);

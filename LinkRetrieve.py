@@ -125,7 +125,7 @@ def search_sites(list_of_shows):
                                     db.commit()
                                     # movie.append(MovieURL(url=m))
                                 movie.status = "Ready"
-                                ActionLog.log('"%s" added to downloadable movies' % m.name)
+                                ActionLog.log('"%s" added to downloadable movies' % movie.name)
                             db.commit()
     db.remove()
 
