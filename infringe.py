@@ -125,12 +125,11 @@ class Infringer(object):
                 scan_refresh_scheduler.reschedule_job('scan_job', trigger='cron', hour='*/' + str(data['scan_interval']))
 
             if c.refresh_day != data['refresh_day'] or c.refresh_hour != int(data['refresh_hour']):
-                scan_refresh_scheduler.reschedule_job('refresh_job', 'cron', day_of_week=data['refresh_day'], hour=str(data['refresh_hour']))
+                scan_refresh_scheduler.reschedule_job('refresh_job', trigger='cron', day_of_week=data['refresh_day'], hour=str(data['refresh_hour']))
 
             c.scan_interval = data['scan_interval']
             c.refresh_day = data['refresh_day']
             c.refresh_hour = data['refresh_hour']
-
 
             if data['ip'] != c.ip or data['port'] != c.port:
                 is_restart = True
