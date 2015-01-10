@@ -241,7 +241,7 @@ def get_download_links(soup, config, domain, hd_format='720p'):
     check_links = '\n'.join(all_links).split('\n')
 
     for l in [x for x in check_links if not x.strip() == '']:
-        if config.domain_link_check(l) and l[-3:].lower() != 'srt':  # ignore .srt files
+        if config.domain_link_check(l) and l[-3:].lower() != 'srt' and hd_format.replace('p','') in l:  # ignore .srt files
             ul = UploadLink(l)
             uploaded_links.append(ul)
 
@@ -260,11 +260,9 @@ def get_download_links(soup, config, domain, hd_format='720p'):
             # only one .mkv link - get it done
             return_links.append(single_extraction_links[0].link_text)
         elif len(single_extraction_links) == 2:
-            # check for HD format if two links
-            if hd_format in single_extraction_links[0].link_text:
-                return_links.append(single_extraction_links[0].link_text)
-            else:
-                return_links.append(single_extraction_links[1].link_text)
+            # prob two episode upload, just get both
+            for t in single_extraction_links:
+                return_links.append(t.link_text)
         else:
             # get all the parts for tv and movies
             for p in part_links:
