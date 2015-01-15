@@ -241,7 +241,7 @@ def get_download_links(soup, config, domain, hd_format='720p'):
     check_links = '\n'.join(all_links).split('\n')
 
     for l in [x for x in check_links if not x.strip() == '']:
-        if config.domain_link_check(l) and l[-3:].lower() != 'srt' and hd_format.replace('p','') in l:  # ignore .srt files
+        if config.domain_link_check(l) and l[-3:].lower() != 'srt':  # ignore .srt files
             ul = UploadLink(l)
             uploaded_links.append(ul)
 
@@ -262,7 +262,10 @@ def get_download_links(soup, config, domain, hd_format='720p'):
         elif len(single_extraction_links) == 2:
             # prob two episode upload, just get both
             for t in single_extraction_links:
-                return_links.append(t.link_text)
+                if hd_format.replace('p', '') in t.link_text:
+                    return_links.append(t.link_text)
+                elif has_hd_format(t.link_text) is False: # handle shows without HD format in string, just add them
+                    return_links.append(t.link_text)
         else:
             # get all the parts for tv and movies
             for p in part_links:
@@ -283,6 +286,12 @@ def write_crawljob_file(package_name, folder_name, link_text, crawljob_dir):
     file.write('text=%s\n' % link_text)
     file.close()
 
+
+def has_hd_format(link_text):
+    if '720' in link_text or '1080' in link_text:
+        return True
+    else:
+        return False
 
 if __name__ == "__main__":
     handle_downloads()
