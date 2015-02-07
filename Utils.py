@@ -17,6 +17,10 @@ def add_episodes(series_id, t=None, db=None, is_mass_update=False):
 
     update_show.episodes.delete()
     db.commit()
+    #TODO - for each episode that isn't retrieved
+    #TODO - update date and name of episode
+    #TODO - then add all episodes where the ID is not in the db for that show
+    #TODO - Add 'attempts' & 'retrieved on' field to show in db
 
     models.ActionLog.log('Updating "%s"' % update_show.show_name)
     # update_show.episode_set.clear() #remove all old episodes before doing the update
