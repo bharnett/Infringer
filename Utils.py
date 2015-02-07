@@ -1,3 +1,4 @@
+from sqlalchemy import null
 import tvdb_api
 import datetime
 import os
@@ -15,15 +16,23 @@ def add_episodes(series_id, t=None, db=None, is_mass_update=False):
     episodes = t[series_id].search('')
     update_show = db.query(Show).filter(Show.show_id == series_id).first()
 
-    update_show.episodes.delete()
-    db.commit()
-    #TODO - for each episode that isn't retrieved
-    #TODO - update date and name of episode
-    #TODO - then add all episodes where the ID is not in the db for that show
-    #TODO - Add 'attempts' & 'retrieved on' field to show in db
-
     models.ActionLog.log('Updating "%s"' % update_show.show_name)
-    # update_show.episode_set.clear() #remove all old episodes before doing the update
+    # update_show.episodes.delete()
+    # db.commit()
+    if update_show.episodes.count() > 0:
+        # update unaired show first with new names & air date
+        for db_episode in [s for s in update_show.episodes if s.status == 'Pending']:
+            # find the episode ID in tv_db episode listing
+            updated_episode_list = [x for x in episodes if x['id'] == str(db_episode.id)]
+            if len(updated_episode_list) > 0:
+                updated_episode = updated_episode_list[0]
+                db_episode.air_date = None if updated_episode['firstaired'] is None else \
+                    datetime.datetime.strptime(updated_episode['firstaired'], '%Y-%m-%d').date()
+                db_episode.episode_name = str(updated_episode).replace('<', '').replace('>', '')
+
+        # get episodes that aren't in the show's episode collection but are in the tvdb response
+        episodes = [x for x in episodes if update_show.episodes.filter(Episode.id == int(x['id'])).count() == 0 and x['seasonnumber'] != '0']
+
     for e in episodes:
         if e['seasonnumber'] == '0':
             continue
@@ -47,7 +56,7 @@ def add_episodes(series_id, t=None, db=None, is_mass_update=False):
                 else:
                     episode_retrieved = 'Retrieved'
 
-            new_episode = Episode(season_number=e['seasonnumber'], episode_number=e['episodenumber'],
+            new_episode = Episode(id=e['id'], season_number=e['seasonnumber'], episode_number=e['episodenumber'],
                                   air_date=first_aired, episode_name=str(e).replace('<', '').replace('>', ''),
                                   status=episode_retrieved, show=update_show)
 

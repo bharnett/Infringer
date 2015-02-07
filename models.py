@@ -34,7 +34,9 @@ class Episode(Base):
     episode_number = Column(Integer)
     episode_name = Column(String)
     air_date = Column(Date)
-    status = Column(String, default='Retrieved')
+    status = Column(String, default='Retrieved') # 'Pending', 'Retrieved'
+    attempts = Column(Integer, default=0)
+    retrieved_on = Column(Date)
 
     def __str__(self):
         return "%s s%se%s" % (self.show.show_name, str(self.season_number).zfill(2), str(self.episode_number).zfill(2))

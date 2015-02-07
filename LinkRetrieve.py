@@ -88,8 +88,10 @@ def search_sites(list_of_shows):
 
             # open links and get download links for TV
             for show_searcher in [l for l in list_of_shows if not l.retrieved]:
+                db_episode.attempts += 1
                 if not show_searcher.found:
                     ActionLog.log("%s not found in soup" % str(show_searcher))
+                    db.commit()
                     continue
                 tv_response = browser.get(show_searcher.link)
                 if tv_response.status_code == 200:
@@ -104,6 +106,7 @@ def search_sites(list_of_shows):
                     db_episode = db.query(Episode).filter(
                         Episode.id == show_searcher.episode_id).first()  # models.Episode.objects.get(pk=show_searcher.episode_id)
                     db_episode.status = "Retrieved"
+                    db_episode.retrieved_on = datetime.date.today()
                     db.commit()
                     # logger.info("%s retrieved" % show_searcher.episode_code)
 

@@ -40,6 +40,7 @@
                     <th>Episode</th>
                     <th>Name</th>
                     <th>Aired On</th>
+                    <th>Attempts</th>
                     <th>Retrieved</th>
                 </tr>
                 </thead>
@@ -54,10 +55,15 @@
                                 ${e.air_date.strftime("%m/%d/%Y")}
                             % endif
                         </td>
+                        <td>${e.attempts}</td>
                         <td>
                             % if e.status == 'Retrieved':
                                 <button type="button" class="retriever btn btn-success" data-episode_id="${e.id}">
-                                    Retrieved
+                                    % if e.retrieved_on is not None:
+                                        Retrieved on ${e.retrieved_on.strfttime("%m/%d/%Y")}
+                                    % else:
+                                        Retrieved
+                                    % endif
                                 </button>
                             % elif e.status == 'Pending':
                                 <button type="button" class="retriever btn btn-warning" data-episode_id="${e.id}">
