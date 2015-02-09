@@ -60,7 +60,7 @@
                             % if e.status == 'Retrieved':
                                 <button type="button" class="retriever btn btn-success" data-episode_id="${e.id}">
                                     % if e.retrieved_on is not None:
-                                        Retrieved on ${e.retrieved_on.strfttime("%m/%d/%Y")}
+                                        Retrieved on ${e.retrieved_on.strftime("%m/%d/%Y")}
                                     % else:
                                         Retrieved
                                     % endif
