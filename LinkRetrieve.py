@@ -184,11 +184,15 @@ def get_episode_list():
                 os.makedirs(show_dir)
             search_episode = Searcher(e.id, episode_id_string, '', show_dir, e.attempts)
 
-            for char in edit_chars:  # this could be tightened up a bit to remove duplicates, but it works fine
+            for char in edit_chars:
                 char_edit_name = edited_show_name.replace(char[0], char[1]).strip().lower()
                 search_episode.search_list.append(char_edit_name)
                 for second in second_chars:
                     search_episode.search_list.append(char_edit_name.replace(second[0], second[1]).strip().lower())
+
+            # remove duplicates
+            search_episode.search_list = list(set(search_episode.search_list))
+
 
             list_of_shows.append(search_episode)
 
