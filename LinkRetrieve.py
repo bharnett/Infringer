@@ -16,7 +16,7 @@ class UploadLink(object):
 
 
 class Searcher(object):
-    def __init__(self, episode_id, episode_code, link, directory):
+    def __init__(self, episode_id, episode_code, link, directory, attempts=0):
         self.episode_id = episode_id
         self.episode_code = episode_code
         self.link = link
@@ -24,6 +24,7 @@ class Searcher(object):
         self.directory = directory
         self.retrieved = False
         self.search_list = []
+        self.attempts = attempts
 
     def __str__(self):
         return '%s %s' % (self.search_list[0], self.episode_code)
@@ -88,9 +89,11 @@ def search_sites(list_of_shows):
 
             # open links and get download links for TV
             for show_searcher in [l for l in list_of_shows if not l.retrieved]:
-                db_episode.attempts += 1
                 if not show_searcher.found:
                     ActionLog.log("%s not found in soup" % str(show_searcher))
+                    db_episode = db.query(Episode).filter(
+                        Episode.id == show_searcher.episode_id).first()
+                    db_episode.attempts +=1
                     db.commit()
                     continue
                 tv_response = browser.get(show_searcher.link)
@@ -179,7 +182,7 @@ def get_episode_list():
             show_dir = config.tv_parent_directory + s.show_directory
             if not os.path.exists(show_dir):
                 os.makedirs(show_dir)
-            search_episode = Searcher(e.id, episode_id_string, '', show_dir)
+            search_episode = Searcher(e.id, episode_id_string, '', show_dir, e.attempts)
 
             for char in edit_chars:  # this could be tightened up a bit to remove duplicates, but it works fine
                 char_edit_name = edited_show_name.replace(char[0], char[1]).strip().lower()
@@ -198,6 +201,31 @@ def get_episode_list():
     db.commit()
 
     return list_of_shows
+
+def show_search(show_list, db):
+    for source in db.query(ScanURL).filter(ScanURL.media_type == 'search').order_by(ScanURL.priority).all():
+        for search_show in [x for x in show_list if x.attempts > 8]:
+            browser = source_login(source)
+            if browser is not None:
+                soup = browser.get(source.url).soup  # this is the search page
+                #put together search form only for tehparadox for now
+                if 'tehparadox.com' in source.domain:
+                    search_form = soup.select('#searchform')[0]
+                    search_form.select('.bginput')[0]['value'] = search_show.search_list[0]
+                    response_page = browser.submit(search_form, source.url)
+
+                # elif 'warez-bb.org' in source.domain:
+                #
+                # elif 'x264-bb.com' in source.domain:
+                #
+                # else:
+                #     # do nothing
+
+                    response_page
+
+
+
+
 
 
 def process_movie_link(db, link):

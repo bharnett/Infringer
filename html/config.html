@@ -73,9 +73,11 @@
                 <div class="col-sm-9">
                     <select class="form-control" id="hd_format" name="hd_format">
                         <option
-                        ${'selected="selected"' if config.hd_format=='720p' else ''}>720p</option>
+                            ${'selected="selected"' if config.hd_format=='720p' else ''}>720p
+                        </option>
                         <option
-                        ${'selected="selected"' if config.hd_format=='1080p' else ''}>1080p</option>
+                            ${'selected="selected"' if config.hd_format=='1080p' else ''}>1080p
+                        </option>
                     </select>
                 </div>
             </div>
@@ -102,8 +104,8 @@
                 <div class="col-sm-9">
                     <select class="form-control" id="scan_interval" name="scan_interval">
                         % for i in config.get_intervals():
-                        <option value="${i}"
-                        ${'selected="selected"' if config.scan_interval==i else ''}>${i}</option>
+                            <option value="${i}"
+                                ${'selected="selected"' if config.scan_interval==i else ''}>${i}</option>
                         % endfor
                     </select>
                 </div>
@@ -114,25 +116,25 @@
                 <div class="col-sm-9">
                     <select class="form-control" id="refresh_day" name="refresh_day">
                         <option value="sun"
-                        ${'selected="selected"' if config.refresh_day=='sun' else ''}>Sunday
+                            ${'selected="selected"' if config.refresh_day=='sun' else ''}>Sunday
                         </option>
                         <option value="mon"
-                        ${'selected="selected"' if config.refresh_day=='mon' else ''}>Monday
+                            ${'selected="selected"' if config.refresh_day=='mon' else ''}>Monday
                         </option>
                         <option value="tue"
-                        ${'selected="selected"' if config.refresh_day=='tue' else ''}>Tuesday
+                            ${'selected="selected"' if config.refresh_day=='tue' else ''}>Tuesday
                         </option>
                         <option value="wed"
-                        ${'selected="selected"' if config.refresh_day=='wed' else ''}>Wednesday
+                            ${'selected="selected"' if config.refresh_day=='wed' else ''}>Wednesday
                         </option>
                         <option value="thu"
-                        ${'selected="selected"' if config.refresh_day=='thu' else ''}>Thursday
+                            ${'selected="selected"' if config.refresh_day=='thu' else ''}>Thursday
                         </option>
                         <option value="fri"
-                        ${'selected="selected"' if config.refresh_day=='fri' else ''}>Friday
+                            ${'selected="selected"' if config.refresh_day=='fri' else ''}>Friday
                         </option>
                         <option value="sat"
-                        ${'selected="selected"' if config.refresh_day=='sat' else ''}>Saturday
+                            ${'selected="selected"' if config.refresh_day=='sat' else ''}>Saturday
                         </option>
                     </select>
                 </div>
@@ -143,8 +145,8 @@
                 <div class="col-sm-9">
                     <select class="form-control" id="refresh_hour" name="refresh_hour">
                         % for i in config.get_hours():
-                        <option value="${i}"
-                        ${'selected="selected"' if config.refresh_hour==i else ''}>${i}</option>
+                            <option value="${i}"
+                                ${'selected="selected"' if config.refresh_hour==i else ''}>${i}</option>
                         % endfor
                     </select>
                 </div>
@@ -197,63 +199,68 @@
             </tr>
             </thead>
             <tbody>
-            % for s in scanurls:
-            <tr>
-                <td class="form-group"><input type="hidden" value="${s.id}" id="id" name="id">
-                    <input type="text" class="form-control input-sm" id="domain" name="domain"
-                           value="${s.domain}">
-                </td>
-                <td class="form-group">
-                    <input type="text" class="form-control input-sm" id="username" name="username"
-                           value="${s.username}">
-                </td>
-                <td class="form-group">
-                    <input type="text" class="form-control input-sm" id="password" name="password"
-                           value="${s.password}">
-                </td>
-                <td class="form-group">
-                    <input type="text" class="form-control input-sm" id="login_page" name="login_page"
-                           value="${s.login_page}">
-                </td>
-                <td class="form-group">
-                    <input type="text" class="form-control input-sm" id="url" name="url" value="${s.url}">
-                </td>
-                <td class="form-group">
-                    <select class="form-control input-sm" id="media_type" name="media_type">
-                        <option
-                        ${'selected="selected"' if s.media_type=='both' else ''}>both</option>
-                        <option
-                        ${'selected="selected"' if s.media_type=='tv' else ''}>tv</option>
-                        <option
-                        ${'selected="selected"' if s.media_type=='movies' else ''}>movies
-                        </option>
-                    </select>
-                </td>
-                <td class="form-group">
-                    <select class="form-control input-sm" id="priority" name="priority">
-                        %for i in range(1, len(scanurls)+1):
-                        <option
-                        ${'selected="selected"' if s.priority==i else ''}>${i}</option>
-                        %endfor
-                    </select>
-                </td>
-                <td class="form-group">
-                    <input type="text" class="form-control input-sm" id="link_select" name="link_select"
-                           value="${s.link_select}">
-                </td>
-                <td class="form-group">
-                    <select class="form-control input-sm" id="max_search_link" name="max_search_link">
-                        %for i in range(50, 800,50):
-                        <option
-                        ${'selected="selected"' if s.max_search_links==i else ''}>${i}</option>
-                        %endfor
-                    </select>
-                </td>
-                <td class="form-group"><span class="glyphicon glyphicon-remove-sign deleter"
-                                             style="cursor: pointer;"
-                                             aria-hidden="true"></span></td>
-            </tr>
-            % endfor
+                % for s in scanurls:
+                    <tr>
+                        <td class="form-group"><input type="hidden" value="${s.id}" id="id" name="id">
+                            <input type="text" class="form-control input-sm" id="domain" name="domain"
+                                   value="${s.domain}">
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="username" name="username"
+                                   value="${s.username}">
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="password" name="password"
+                                   value="${s.password}">
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="login_page" name="login_page"
+                                   value="${s.login_page}">
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="url" name="url" value="${s.url}">
+                        </td>
+                        <td class="form-group">
+                            <select class="form-control input-sm" id="media_type" name="media_type">
+                                <option
+                                    ${'selected="selected"' if s.media_type=='both' else ''}>both
+                                </option>
+                                <option
+                                    ${'selected="selected"' if s.media_type=='tv' else ''}>tv
+                                </option>
+                                <option
+                                    ${'selected="selected"' if s.media_type=='movies' else ''}>movies
+                                </option>
+                                <option
+                                    ${'selected="selected"' if s.media_type=='search' else ''}>search
+                                </option>
+                            </select>
+                        </td>
+                        <td class="form-group">
+                            <select class="form-control input-sm" id="priority" name="priority">
+                                %for i in range(1, len(scanurls)+1):
+                                    <option
+                                        ${'selected="selected"' if s.priority==i else ''}>${i}</option>
+                                %endfor
+                            </select>
+                        </td>
+                        <td class="form-group">
+                            <input type="text" class="form-control input-sm" id="link_select" name="link_select"
+                                   value="${s.link_select}">
+                        </td>
+                        <td class="form-group">
+                            <select class="form-control input-sm" id="max_search_link" name="max_search_link">
+                                %for i in range(50, 800,50):
+                                    <option
+                                        ${'selected="selected"' if s.max_search_links==i else ''}>${i}</option>
+                                %endfor
+                            </select>
+                        </td>
+                        <td class="form-group"><span class="glyphicon glyphicon-remove-sign deleter"
+                                                     style="cursor: pointer;"
+                                                     aria-hidden="true"></span></td>
+                    </tr>
+                % endfor
             <tr>
                 <td>
                     <button type="button" class="btn btn-sm btn-success adder"><span
@@ -282,9 +289,9 @@
         $.validator.addMethod('domainChecker', function (value) {
             var isValid = true;
             allUrls = value.split(',');
-            for (i = 0; i < allUrls.length; i++){
+            for (i = 0; i < allUrls.length; i++) {
                 isValid = /^[A-Za-z0-9-]{1,63}\.+[A-Za-z]{2,6}$/.test(allUrls[i].trim());
-                if (isValid == false){
+                if (isValid == false) {
                     break;
                 }
             }
