@@ -93,7 +93,7 @@ def search_sites(list_of_shows):
                     ActionLog.log("%s not found in soup" % str(show_searcher))
                     db_episode = db.query(Episode).filter(
                         Episode.id == show_searcher.episode_id).first()
-                    db_episode.attempts +=1
+                    db_episode.attempts += 1
                     db.commit()
                     continue
                 tv_response = browser.get(show_searcher.link)
@@ -170,10 +170,10 @@ def get_episode_list():
     config = db.query(Config).first()
 
     for s in db.query(Show).filter(Show.is_active).all():
-        episodes = s.episodes.filter(Episode.air_date <= datetime.date.today()).filter(
+        episodes = s.episodes.filter(Episode.air_date <= datetime.date.today() - datetime.timedelta(days=1)).filter(
             Episode.status == 'Pending').all()
 
-        edit_chars = [('', ''), ('.', ' '), ('.', '')]  #first one handles initial non-char-edited name
+        edit_chars = [('', ''), ('.', ' '), ('.', '')]  # first one handles initial non-char-edited name
         second_chars = [('\'', '')]
         for e in episodes:
             # remove dates from show names (2014), (2009) for accurate string searches
@@ -202,30 +202,27 @@ def get_episode_list():
 
     return list_of_shows
 
+
 def show_search(show_list, db):
     for source in db.query(ScanURL).filter(ScanURL.media_type == 'search').order_by(ScanURL.priority).all():
         for search_show in [x for x in show_list if x.attempts > 8]:
             browser = source_login(source)
             if browser is not None:
                 soup = browser.get(source.url).soup  # this is the search page
-                #put together search form only for tehparadox for now
+                # put together search form only for tehparadox for now
                 if 'tehparadox.com' in source.domain:
                     search_form = soup.select('#searchform')[0]
                     search_form.select('.bginput')[0]['value'] = search_show.search_list[0]
                     response_page = browser.submit(search_form, source.url)
 
-                # elif 'warez-bb.org' in source.domain:
-                #
-                # elif 'x264-bb.com' in source.domain:
-                #
-                # else:
-                #     # do nothing
+                    # elif 'warez-bb.org' in source.domain:
+                    #
+                    # elif 'x264-bb.com' in source.domain:
+                    #
+                    # else:
+                    #     # do nothing
 
                     response_page
-
-
-
-
 
 
 def process_movie_link(db, link):
@@ -295,7 +292,7 @@ def get_download_links(soup, config, domain, hd_format='720p'):
             for t in single_extraction_links:
                 if hd_format.replace('p', '') in t.link_text:
                     return_links.append(t.link_text)
-                elif has_hd_format(t.link_text) is False: # handle shows without HD format in string, just add them
+                elif has_hd_format(t.link_text) is False:  # handle shows without HD format in string, just add them
                     return_links.append(t.link_text)
         else:
             # get all the parts for tv and movies
@@ -323,6 +320,7 @@ def has_hd_format(link_text):
         return True
     else:
         return False
+
 
 if __name__ == "__main__":
     handle_downloads()
