@@ -30,7 +30,8 @@ class Searcher(object):
         return '%s %s' % (self.search_list[0], self.episode_code)
 
     @staticmethod
-    def populate_searcher(self, episodes, show, config):
+    def populate_searcher(episodes, show, config):
+        search_episodes = []
         edit_chars = [('', ''), ('.', ' '), ('.', '')]  # first one handles initial non-char-edited name
         second_chars = [('\'', '')]
         for e in episodes:
@@ -50,9 +51,9 @@ class Searcher(object):
 
             # remove duplicates
             search_episode.search_list = list(set(search_episode.search_list))
+            search_episodes.append(search_episode)
 
-        return search_episode
-
+        return search_episodes
 
 
     def search_me(self, link_text):
@@ -199,31 +200,10 @@ def get_episode_list():
         episodes = s.episodes.filter(Episode.air_date <= datetime.date.today() - datetime.timedelta(days=1)).filter(
             Episode.status == 'Pending').all()
 
-        new_search_episode = Searcher.populate_searcher(episodes, s, config)
-        list_of_shows.append(new_search_episode)
-
-        # edit_chars = [('', ''), ('.', ' '), ('.', '')]  # first one handles initial non-char-edited name
-        # second_chars = [('\'', '')]
-        # for e in episodes:
-        #     # remove dates from show names (2014), (2009) for accurate string searches
-        #     edited_show_name = re.sub('[\(][0-9]{4}[\)]', '', s.show_name)
-        #     episode_id_string = 's%se%s' % (str(e.season_number).zfill(2), str(e.episode_number).zfill(2))
-        #     show_dir = config.tv_parent_directory + s.show_directory
-        #     if not os.path.exists(show_dir):
-        #         os.makedirs(show_dir)
-        #     search_episode = Searcher(e.id, episode_id_string, '', show_dir, e.attempts)
-        #
-        #     for char in edit_chars:
-        #         char_edit_name = edited_show_name.replace(char[0], char[1]).strip().lower()
-        #         search_episode.search_list.append(char_edit_name)
-        #         for second in second_chars:
-        #             search_episode.search_list.append(char_edit_name.replace(second[0], second[1]).strip().lower())
-        #
-        #     # remove duplicates
-        #     search_episode.search_list = list(set(search_episode.search_list))
-        #
-        #
-        #     list_of_shows.append(search_episode)
+        if len(episodes) > 0:
+            new_search_episodes = Searcher.populate_searcher(episodes, s, config)
+            for n in new_search_episodes:
+                list_of_shows.append(n)
 
     if len(list_of_shows) > 0:
         all_tv = ', '.join(str(s) for s in list_of_shows)
