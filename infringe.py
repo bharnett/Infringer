@@ -321,8 +321,8 @@ class Infringer(object):
             urllib.parse.urlparse(parsed.query)
             movie_name = urllib.parse.parse_qs(parsed.query)['t'][0].replace('+', ' ') # get the real movie name to use later
             release_year = urllib.parse.parse_qs(parsed.query)['y'][0]
-            mdb_url_param = '%s_%s' % (urllib.parse.quote_plus(movie_name), release_year)
-            mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % mdb_url_param
+            mdb_url_param = '%s' % (urllib.parse.quote_plus(movie_name))
+            mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&year=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % (mdb_url_param, release_year)
             mdb_response = urllib.request.urlopen(mdb_link)
             mdb_json = mdb_response.read()
             mdb_json_string = bytes.decode(mdb_json)
