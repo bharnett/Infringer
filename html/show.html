@@ -40,43 +40,42 @@
                     <th>Episode</th>
                     <th>Name</th>
                     <th>Aired On</th>
-                    <th>Attempts</th>
+                    <th>Retrieve On</th>
                     <th>Retrieved</th>
                 </tr>
                 </thead>
                 <tbody>
-                % for e in episodes:
-                    <tr>
-                        <td>${e.season_number}</td>
-                        <td>${e.episode_number}</td>
-                        <td>${e.get_episode_name()}</td>
-                        <td>
-                            % if e.air_date:
+                    % for e in episodes:
+                        <tr class="${'success' if e.status.lower() == 'retrieved' else 'warning'}">
+                            <td>${e.season_number}</td>
+                            <td>${e.episode_number}</td>
+                            <td>${e.get_episode_name()}</td>
+                            <td>
+                                % if e.air_date:
                                 ${e.air_date.strftime("%m/%d/%Y")}
-                            % endif
-                        </td>
-                        <td>${e.attempts}</td>
-                        <td>
-                            % if e.status == 'Retrieved':
-                                <button type="button" class="retriever btn btn-success" data-episode_id="${e.id}">
-                                    % if e.retrieved_on is not None:
-                                        Retrieved on ${e.retrieved_on.strftime("%m/%d/%Y")}
-                                    % else:
-                                        Retrieved
-                                    % endif
-                                </button>
-                            % elif e.status == 'Pending':
-                                <button type="button" class="retriever btn btn-warning" data-episode_id="${e.id}">
-                                    Pending
-                                </button>
-                            % else:
-                                <button type="button" class="retriever btn btn-danger" data-episode_id="${e.id}">Not
-                                    Retrieved
-                                </button>
-                            % endif
-                        </td>
-                    </tr>
-                % endfor
+                                % endif
+                            </td>
+                            <td>
+                                % if e.retrieved_on is not None:
+                                    Retrieved on ${e.retrieved_on.strftime("%m/%d/%Y")}
+                                % endif
+                            </td>
+                            <td>
+                                <div class="btn-group" data-episode_id="${e.id}">
+                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"
+                                            aria-expanded="false">
+                                        Action <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu" role="menu">
+                                        <li><a href="#" data-action="pending">Mark as 'Pending'</a></li>
+                                        <li><a href="#" data-action="retrieved">Mark as 'Retrieved'</a></li>
+                                        <li><a href="#" data-action="search">Start search</a></li>
+                                    </ul>
+                                </div>
+                                <span class="glyphicon glyphicon-refresh" style="display:none;"></span>
+                            </td>
+                        </tr>
+                    % endfor
                 </tbody>
             </table>
         </div>
@@ -86,7 +85,7 @@
 </body>
 <script type="text/javascript">
     $(document).ready(function () {
-        $('table .btn').click(OnButtonClick);
+        $('tr .btn-group a').click(OnButtonClick);
         $('html').niceScroll();
         $('#btn_refresh, #btn_remove').click(OnRemoveRefreshClick);
     })
@@ -95,12 +94,12 @@
     function OnButtonClick() {
 
         var source = $(this);
-        var sourceVal = $(source).html().toLowerCase();
+        var sourceAction = $(source).data('action');
         $.ajax({
             url: '/update_episode',
             data: JSON.stringify({
-                'episodeid': $(source).data('episode_id'),
-                'changeto': (sourceVal == 'not retrieved' || sourceVal == 'retrieved' ? 'Pending' : 'Retrieved')
+                'episodeid': $(source).closest('.btn-group').data('episode_id'),
+                'changeto': sourceAction
             }),
             dataType: 'text',
             contentType: 'application/json',
@@ -108,16 +107,35 @@
             error: function (req, errorString, ex) {
                 alert(errorString)
             },
+            beforeSend: function()
+            {
+                if (sourceAction == 'search')
+                {
+                    $(source).closest('td').find('.glyphicon').show().addClass('fa-spin');
+                }
+            },
             success: function (data) {
-                if (data == 'error') {
+                d = $.parseJSON($.parseJSON(data));
+                if (d == 'error') {
                     showStatus(true, 'Error changing status')
                 }
                 else {
-                    if (sourceVal == 'retrieved' || sourceVal == 'not retrieved') {
-                        $(source).removeClass('btn-success').removeClass('btn-danger').addClass('btn-warning').html('Pending')
-                    }
-                    else {
-                        $(source).removeClass('btn-danger').removeClass('btn-warning').addClass('btn-success').html('Retrieved')
+                    switch (sourceAction) {
+                        case 'pending':
+                            $(source).closest('tr').removeClass('success').addClass('warning');
+                            break;
+                        case 'retrieved':
+                            $(source).closest('tr').removeClass('warning').addClass('success');
+                            break;
+                        case 'search':
+                            if (d == 'success') {
+                                $(source).closest('tr').removeClass('warning').addClass('success');
+                            }
+                            else {
+                                $(source).closest('tr').removeClass('success').addClass('warning');
+                            }
+                            $(source).closest('td').find('.glyphicon').hide().removeClass('fa-spin');
+                            break;
                     }
                 }
             }
@@ -143,7 +161,7 @@
                 alert(errorString)
             },
             beforeSubmit: function () {
-                $('.btn').attr('disabled','disabled');
+                $('.btn').attr('disabled', 'disabled');
             },
             success: function (data) {
                 if (data == 'error') {

@@ -118,6 +118,8 @@
                                                                   data-toggle="tab">Upcoming</a></li>
                         <li role="presentation"><a href="#shows" aria-controls="show" role="tab"
                                                    data-toggle="tab">Shows</a></li>
+                        <li role="presentation"><a href="#downloaded" aira-controls="downloaded" role="tab"
+                                                   data-toggle="tab">Downloaded Shows</a></li>
                     </ul>
                 </div>
                 <div class="tab-content">
@@ -160,10 +162,31 @@
                                 <tbody>
                                     % for show in shows:
                                         <tr>
-                                            <td>${show.show_name}</td>
+                                            <td><a href="/show/${show.show_id}">${show.show_name}</a></td>
                                             <td>${show.first_aired}</td>
                                             <td>${show.is_active}</td>
-                                            <td><a href="/show/${show.show_id}">Episodes</a></td>
+                                        </tr>
+                                    % endfor
+                                </tbody>
+                            </table>
+                        % endif
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="downloaded">
+                        % if downloaded:
+                            <table id="downloaded_shows" class="table table-striped table-hover table-condensed">
+                                <thead>
+                                <tr>
+                                    <th>Show Name</th>
+                                    <th>Episode Air Date</th>
+                                    <th>Downloaded On</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                    % for e in downloaded:
+                                        <tr>
+                                            <td><a href="/show/${e.show.show_id}">${e.show.show_name}</a></td>
+                                            <td>${e.air_date.strftime("%m/%d/%y")}</td>
+                                            <td>${e.retrieved_on.strftime("%m/%d/%Y")}</td>
                                         </tr>
                                     % endfor
                                 </tbody>
@@ -223,195 +246,195 @@
 </div>
 </body>
 <script type="text/javascript">
-$(document).ready(function () {
-    $("#txt_showSearch").keypress(function (e) {
-        if (e.which == 13) {
-            e.preventDefault();
-            $("#btn_showSearch").click();
+    $(document).ready(function () {
+        $("#txt_showSearch").keypress(function (e) {
+            if (e.which == 13) {
+                e.preventDefault();
+                $("#btn_showSearch").click();
+            }
+        });
+
+        $("#table_wrapper").niceScroll();
+        $('html').niceScroll();
+
+        $("#admin_group button").slice(0, 2).click(OnAdminButtonClick);
+
+        $('.btn-movie').click(OnMovieButtonClick);
+        $("#btn_ignoreAll").click(OnIgnoreAllClick);
+        $('.omdbapi').click(OnOmdbapiClick);
+
+        $('#btn_showSearch').click(function () {
+            $.get('/search',
+                    {show_search: $('#txt_showSearch').val()},
+                    function (data) {
+                        $('#results_table tbody tr').remove(); //remove all existing rows before adding
+                        var results = $.parseJSON(data);
+                        $.each(results, function (i, val) {
+                            $('#results_table tbody').append('<tr></tr>');
+                            var row = $('#results_table tr:last');
+                            $(row).append('<td>' + val.seriesname + '</td>');
+                            $(row).append('<td>' + val.firstaired + '</td>');
+                            $(row).append('<td>' + val.network + '</td>');
+                            $(row).append('<td><button type="button" class="btn btn-info btn-xs" data-seriesid="' + val.seriesid + '">Add</button></td>');
+
+                        });
+                        $('#search_results').modal();
+                        $('#results_table button').click(OnShowAddClick);
+                    })
+        });
+
+        function OnShowAddClick() {
+            var seriesid = $(this).data('seriesid');
+            var data = {'seriesid': seriesid}
+            $.ajax({
+                url: '/add_show',
+                data: JSON.stringify(data),
+                beforeSend: function () {
+                    $('#search_results .btn-xs').attr('disabled', 'disabled');
+                },
+                dataType: 'text',
+                contentType: 'application/json',
+                type: 'POST',
+                error: function (req, errorString, ex) {
+                    showStatus(true, errorString)
+                },
+                success: function (data) {
+                    if (data == 'duplicate') {
+                        showStatus(true, 'Show already exists!')
+                        $('#search_results .btn-xs').removeAttr('disabled');
+                    }
+                    else {
+                        window.location.href = "/show/" + seriesid
+                    }
+                }
+
+            })
         }
     });
 
-    $("#table_wrapper").niceScroll();
-    $('html').niceScroll();
+    function OnMovieButtonClick() {
+        var source = $(this);
+        var isIgnore = $(source).data('movie_ignore');
+        var isCleanup = $(source).text().toLowerCase().trim() == 'movie db cleanup';
 
-    $("#admin_group button").slice(0, 2).click(OnAdminButtonClick);
-
-    $('.btn-movie').click(OnMovieButtonClick);
-    $("#btn_ignoreAll").click(OnIgnoreAllClick);
-    $('.omdbapi').click(OnOmdbapiClick);
-
-    $('#btn_showSearch').click(function () {
-        $.get('/search',
-                {show_search: $('#txt_showSearch').val()},
-                function (data) {
-                    $('#results_table tbody tr').remove(); //remove all existing rows before adding
-                    var results = $.parseJSON(data);
-                    $.each(results, function (i, val) {
-                        $('#results_table tbody').append('<tr></tr>');
-                        var row = $('#results_table tr:last');
-                        $(row).append('<td>' + val.seriesname + '</td>');
-                        $(row).append('<td>' + val.firstaired + '</td>');
-                        $(row).append('<td>' + val.network + '</td>');
-                        $(row).append('<td><button type="button" class="btn btn-info btn-xs" data-seriesid="' + val.seriesid + '">Add</button></td>');
-
-                    });
-                    $('#search_results').modal();
-                    $('#results_table button').click(OnShowAddClick);
-                })
-    });
-
-    function OnShowAddClick() {
-        var seriesid = $(this).data('seriesid');
-        var data = {'seriesid': seriesid}
         $.ajax({
-            url: '/add_show',
-            data: JSON.stringify(data),
-            beforeSend: function () {
-                $('#search_results .btn-xs').attr('disabled', 'disabled');
+            url: '/handle_movie',
+            data: JSON.stringify({
+                'movieid': $(source).data('movie_id'),
+                'isignore': isIgnore,
+                'iscleanup': isCleanup
+            }),
+            dataType: 'text',
+            contentType: 'application/json',
+            type: 'POST',
+            error: function (req, errorString, ex) {
+                showStatus(true, errorString);
             },
+            success: function (data) {
+                var ar = $.parseJSON($.parseJSON(data));
+                if (ar.status == 'success') {
+                    if (isIgnore) {
+                        $(source).closest('tr').remove();
+                    }
+                    else if (isCleanup) {
+                        location.reload(true);
+                    }
+                    else {
+                        var currentRow = $(source).closest('tr');
+                        var newText = $(currentRow).children().first().text() + ' is downloading..';
+                        $(currentRow).children().remove();
+                        $(currentRow).append('<td colspan="3" class="success">' + newText + '</td>');
+                    }
+                }
+                else {
+                    showStatus(ar.status.toLowerCase() == 'error', ar.message);
+                }
+
+            }
+        })
+    }
+    function OnIgnoreAllClick() {
+        $('#table_movies .btn-movie.btn-danger').each(function () {
+            $(this).click();
+        });
+        $(this).remove();
+    }
+
+    function OnAdminButtonClick() {
+        var source = $(this);
+        $.ajax({
+            url: '/refresh',
+            data: JSON.stringify({
+                'isshowrefresh': $(source).data('admin') == 'refresh',
+                'isscan': $(source).data('admin') == 'scan'
+            }),
             dataType: 'text',
             contentType: 'application/json',
             type: 'POST',
             error: function (req, errorString, ex) {
                 showStatus(true, errorString)
+                $('button, input').removeAttr('disabled');
+                $('a').removeClass('disabled_link')
             },
-            success: function (data) {
-                if (data == 'duplicate') {
-                    showStatus(true, 'Show already exists!')
-                    $('#search_results .btn-xs').removeAttr('disabled');
+            beforeSend: function () {
+                $(source).find('.fa').addClass('fa-spin');
+                $('button, input').attr('disabled', 'disabled');
+                $('a').addClass('disabled_link');
+            },
+            success: function () {
+                var successText;
+                if ($(source).data('admin') == 'refresh') {
+                    successText = 'Episodes refreshed from TVDB...';
                 }
                 else {
-                    window.location.href = "/show/" + seriesid
+                    successText = 'Scanning complete...';
                 }
+                showStatus(false, successText)
+                window.setTimeout(function () {
+                    location.reload(true)
+                }, 3000)
             }
-
-        })
+        });
     }
-});
 
-function OnMovieButtonClick() {
-    var source = $(this);
-    var isIgnore = $(source).data('movie_ignore');
-    var isCleanup = $(source).text().toLowerCase().trim() == 'movie db cleanup';
-
-    $.ajax({
-        url: '/handle_movie',
-        data: JSON.stringify({
-            'movieid': $(source).data('movie_id'),
-            'isignore': isIgnore,
-            'iscleanup': isCleanup
-        }),
-        dataType: 'text',
-        contentType: 'application/json',
-        type: 'POST',
-        error: function (req, errorString, ex) {
-            showStatus(true, errorString);
-        },
-        success: function (data) {
-            var ar = $.parseJSON($.parseJSON(data));
-            if (ar.status == 'success') {
-                if (isIgnore) {
-                    $(source).closest('tr').remove();
-                }
-                else if (isCleanup) {
-                    location.reload(true);
+    function OnOmdbapiClick() {
+        var source = $(this);
+        $.ajax({
+            url: '/movie_details/',
+            dataType: 'text',
+            contentType: 'application/json',
+            data: {'movie_id': $(this).data('movie_id')},
+            success: function (data) {
+                if (data != 'error') {
+                    var movie = $.parseJSON(data);
+                    $(source).popover({
+                        container: 'body',
+                        placement: 'top',
+                        trigger: 'focus',
+                        html: true,
+                        title: '<a href="http://imdb.com/title/' + movie.imdbID + '" target="_blank">' + movie.Title + '</a>',
+                        content: '<div class="row">' +
+                                '<div class="col-xs-3">' +
+                                '<img class="img-responsive img-rounded" src=' + movie.Poster + '><strong>' +
+                                '</div>' +
+                                '<div class="col-xs-9">' +
+                                '<ul class="list-unstyled">' +
+                                '<li>Ratings:</strong> IMDB <span class="badge">' + movie.imdbRating + '</span> Meta <span class="badge">' + movie.Metascore + '</span>' +
+                                '</li><li><strong>Relase Date:</strong> ' + movie.Released +
+                                '</li><li><strong>Plot:</strong> ' + movie.Plot +
+                                '</li><li><strong>Staring:</strong> ' + movie.Actors +
+                                '</li><li><strong>Language:</strong> ' + movie.Language +
+                                '</li></ul></div></div>'
+                    });
+                    $(source).popover('show')
                 }
                 else {
-                    var currentRow = $(source).closest('tr');
-                    var newText = $(currentRow).children().first().text() + ' is downloading..';
-                    $(currentRow).children().remove();
-                    $(currentRow).append('<td colspan="3" class="success">' + newText + '</td>');
+                    showStatus(true, 'Error')
                 }
             }
-            else {
-                showStatus(ar.status.toLowerCase() == 'error', ar.message);
-            }
-
-        }
-    })
-}
-function OnIgnoreAllClick() {
-    $('#table_movies .btn-movie.btn-danger').each(function () {
-        $(this).click();
-    });
-    $(this).remove();
-}
-
-function OnAdminButtonClick() {
-    var source = $(this);
-    $.ajax({
-        url: '/refresh',
-        data: JSON.stringify({
-            'isshowrefresh': $(source).data('admin') == 'refresh',
-            'isscan': $(source).data('admin') == 'scan'
-        }),
-        dataType: 'text',
-        contentType: 'application/json',
-        type: 'POST',
-        error: function (req, errorString, ex) {
-            showStatus(true, errorString)
-            $('button, input').removeAttr('disabled');
-            $('a').removeClass('disabled_link')
-        },
-        beforeSend: function () {
-            $(source).find('.fa').addClass('fa-spin');
-            $('button, input').attr('disabled', 'disabled');
-            $('a').addClass('disabled_link');
-        },
-        success: function () {
-            var successText;
-            if ($(source).data('admin') == 'refresh') {
-                successText = 'Episodes refreshed from TVDB...';
-            }
-            else {
-                successText = 'Scanning complete...';
-            }
-            showStatus(false, successText)
-            window.setTimeout(function () {
-                location.reload(true)
-            }, 3000)
-        }
-    });
-}
-
-function OnOmdbapiClick() {
-    var source = $(this);
-    $.ajax({
-        url: '/movie_details/',
-        dataType: 'text',
-        contentType: 'application/json',
-        data: {'movie_id': $(this).data('movie_id')},
-        success: function (data) {
-            if (data != 'error') {
-                var movie = $.parseJSON(data);
-                $(source).popover({
-                    container: 'body',
-                    placement: 'top',
-                    trigger: 'focus',
-                    html: true,
-                    title: '<a href="http://imdb.com/title/' + movie.imdbID + '" target="_blank">' + movie.Title + '</a>',
-                    content: '<div class="row">' +
-                            '<div class="col-xs-3">' +
-                            '<img class="img-responsive img-rounded" src=' + movie.Poster + '><strong>' +
-                            '</div>' +
-                            '<div class="col-xs-9">' +
-                            '<ul class="list-unstyled">' +
-                            '<li>Ratings:</strong> IMDB <span class="badge">' + movie.imdbRating + '</span> Meta <span class="badge">' + movie.Metascore + '</span>' +
-                            '</li><li><strong>Relase Date:</strong> ' + movie.Released +
-                            '</li><li><strong>Plot:</strong> ' + movie.Plot +
-                            '</li><li><strong>Staring:</strong> ' + movie.Actors +
-                            '</li><li><strong>Language:</strong> ' + movie.Language +
-                            '</li></ul></div></div>'
-                });
-                $(source).popover('show')
-            }
-            else {
-                showStatus(true,'Error')
-            }
-        }
-    });
-    return false;
-}
+        });
+        return false;
+    }
 
 
 </script>

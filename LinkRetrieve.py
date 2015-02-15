@@ -30,31 +30,34 @@ class Searcher(object):
         return '%s %s' % (self.search_list[0], self.episode_code)
 
     @staticmethod
-    def populate_searcher(episodes, show, config):
+    def populate_searcher(episodes, config):
         search_episodes = []
-        edit_chars = [('', ''), ('.', ' '), ('.', '')]  # first one handles initial non-char-edited name
-        second_chars = [('\'', '')]
         for e in episodes:
-            # remove dates from show names (2014), (2009) for accurate string searches
-            edited_show_name = re.sub('[\(][0-9]{4}[\)]', '', show.show_name)
-            episode_id_string = 's%se%s' % (str(e.season_number).zfill(2), str(e.episode_number).zfill(2))
-            show_dir = config.tv_parent_directory + show.show_directory
-            if not os.path.exists(show_dir):
-                os.makedirs(show_dir)
-            search_episode = Searcher(e.id, episode_id_string, '', show_dir, e.attempts)
-
-            for char in edit_chars:
-                char_edit_name = edited_show_name.replace(char[0], char[1]).strip().lower()
-                search_episode.search_list.append(char_edit_name)
-                for second in second_chars:
-                    search_episode.search_list.append(char_edit_name.replace(second[0], second[1]).strip().lower())
-
-            # remove duplicates
-            search_episode.search_list = list(set(search_episode.search_list))
-            search_episodes.append(search_episode)
+            search_episodes.append(Searcher.populate_episode(e, config.tv_parent_directory))
 
         return search_episodes
 
+    @staticmethod
+    def populate_episode(episode, parent_dir):
+        edit_chars = [('', ''), ('.', ' '), ('.', '')]  # first one handles initial non-char-edited name
+        second_chars = [('\'', '')]
+        # remove dates from show names (2014), (2009) for accurate string searches
+        edited_show_name = re.sub('[\(][0-9]{4}[\)]', '', episode.show.show_name)
+        episode_id_string = 's%se%s' % (str(episode.season_number).zfill(2), str(episode.episode_number).zfill(2))
+        show_dir = parent_dir + episode.show.show_directory
+        if not os.path.exists(show_dir):
+            os.makedirs(show_dir)
+        search_episode = Searcher(episode.id, episode_id_string, '', show_dir, episode.attempts)
+
+        for char in edit_chars:
+            char_edit_name = edited_show_name.replace(char[0], char[1]).strip().lower()
+            search_episode.search_list.append(char_edit_name)
+            for second in second_chars:
+                search_episode.search_list.append(char_edit_name.replace(second[0], second[1]).strip().lower())
+
+        # remove duplicates
+        search_episode.search_list = list(set(search_episode.search_list))
+        return search_episode
 
     def search_me(self, link_text):
         is_found = False
@@ -127,17 +130,18 @@ def search_sites(list_of_shows):
                 if tv_response.status_code == 200:
                     episode_soup = tv_response.soup
                     episode_links = get_download_links(episode_soup, config, source.domain, config.hd_format)
-
-                    write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
-                                        config.crawljob_directory)
-                    ActionLog.log('"%s\'s" .crawljob file created.' % str(show_searcher))
-                    show_searcher.retrieved = True
-                    # use episode id to update database
-                    db_episode = db.query(Episode).filter(
-                        Episode.id == show_searcher.episode_id).first()  # models.Episode.objects.get(pk=show_searcher.episode_id)
-                    db_episode.status = "Retrieved"
-                    db_episode.retrieved_on = datetime.date.today()
-                    db.commit()
+                    process_tv_link(db, config, show_searcher, episode_links)
+                #
+                #     write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
+                #                         config.crawljob_directory)
+                #     ActionLog.log('"%s\'s" .crawljob file created.' % str(show_searcher))
+                #     show_searcher.retrieved = True
+                #     # use episode id to update database
+                #     db_episode = db.query(Episode).filter(
+                #         Episode.id == show_searcher.episode_id).first()  # models.Episode.objects.get(pk=show_searcher.episode_id)
+                #     db_episode.status = "Retrieved"
+                #     db_episode.retrieved_on = datetime.date.today()
+                #     db.commit()
                     # logger.info("%s retrieved" % show_searcher.episode_code)
 
             if source.media_type in movie_types:  # scan movies
@@ -161,7 +165,6 @@ def search_sites(list_of_shows):
                                 ActionLog.log('"%s" added to downloadable movies' % movie.name)
                             db.commit()
     db.remove()
-
 
 def source_login(source):
     # source_domain = urlparse(source.login_page).netloc
@@ -201,7 +204,7 @@ def get_episode_list():
             Episode.status == 'Pending').all()
 
         if len(episodes) > 0:
-            new_search_episodes = Searcher.populate_searcher(episodes, s, config)
+            new_search_episodes = Searcher.populate_searcher(episodes, config)
             for n in new_search_episodes:
                 list_of_shows.append(n)
 
@@ -216,28 +219,68 @@ def get_episode_list():
     return list_of_shows
 
 
-def show_search(show_list, db):
-    for source in db.query(ScanURL).filter(ScanURL.media_type == 'search').order_by(ScanURL.priority).all():
-        for search_show in [x for x in show_list if x.attempts > 8]:
-            browser = source_login(source)
-            if browser is not None:
-                soup = browser.get(source.url).soup  # this is the search page
-                # put together search form only for tehparadox for now
-                if 'tehparadox.com' in source.domain:
-                    search_form = soup.select('#searchform')[0]
-                    search_form.select('.bginput')[0]['value'] = search_show.search_list[0]
-                    response_page = browser.submit(search_form, source.url)
+def show_search(episode_id, db):
+    # db = models.connect()
+    config = db.query(Config).first()
 
-                    # elif 'warez-bb.org' in source.domain:
-                    #
-                    # elif 'x264-bb.com' in source.domain:
-                    #
-                    # else:
-                    #     # do nothing
+    e = db.query(Episode).get(episode_id)
+    search_show = Searcher.populate_episode(e, config.tv_parent_directory)
 
-                    response_page
+    search_sources = db.query(ScanURL).filter(ScanURL.media_type == 'search').order_by(ScanURL.priority).all();
+    # search_show = search_for_episode
+    for source in search_sources:
+        browser = source_login(source)
+        if browser is not None:
+            soup = browser.get(source.url).soup  # this is the search page
+            # put together search form only for tehparadox for now
+            if 'tehparadox.com' in source.domain:
+                search_form = soup.select('#searchform')[0]
+                search_form.select('.bginput')[0]['value'] = str(search_show)
+                response_page = browser.submit(search_form, source.url)
+
+            elif 'warez-bb.org' in source.domain:
+                search_form = soup.select('form')[0]
+                search_form.select('#autofocus')[0]['value'] = str(search_show)
+                response_page = browser.submit(search_form, source.url)
+                #
+                # elif 'x264-bb.com' in source.domain:
+                #
+                # else:
+                #     # do nothing
+            all_links = response_page.soup.select('a')
+            usable_links = [x for x in all_links if
+                            str(search_show) in x.text.lower() and has_hd_format(x.text.lower())]
+            preference_links = [p for p in usable_links if config.hd_format in p.text.lower()]
+
+            if len(preference_links) == 0:
+                preference_links = usable_links
+            if len(preference_links) > 0:
+                search_show.found = True
+                for l in preference_links:
+                    search_show.link = urljoin(source.domain, l.get('href'))
+                    tv_response = browser.get(search_show.link)
+                    if tv_response.status_code == 200:
+                        hd_format = '720p' if '720p' in l else '1080p' # will to accept any format on the search
+                        dl_links = get_download_links(tv_response.soup, config, source.domain, hd_format)
+                        if len(dl_links) > 0:  # check to make sure there are usable links.
+                            process_tv_link(db, config, search_show, dl_links)
+                            break  #success - don't check any more links
+                        else:
+                            continue  #no dice, check the next link
+    return e.status
 
 
+def process_tv_link(db, config, show_searcher, episode_links):
+        write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
+                            config.crawljob_directory)
+        ActionLog.log('"%s\'s" .crawljob file created.' % str(show_searcher))
+        show_searcher.retrieved = True
+        # use episode id to update database
+        db_episode = db.query(Episode).filter(
+            Episode.id == show_searcher.episode_id).first()  # models.Episode.objects.get(pk=show_searcher.episode_id)
+        db_episode.status = "Retrieved"
+        db_episode.retrieved_on = datetime.date.today()
+        db.commit()
 def process_movie_link(db, link):
     regex = re.compile(r'[sS]\d\d[eE]\d\d')
     regex_dated = re.compile(r'[0-9]{4}[\s\S][0-1][0-9][\s\S][0-3][0-9]')
