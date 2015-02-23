@@ -26,7 +26,7 @@ class Infringer(object):
     @cherrypy.expose
     def index(self):
         config = cherrypy.request.db.query(Config).first()
-        if config is None:
+        if not config.is_populated():
             raise cherrypy.HTTPRedirect("/config")
         else:
             index_template = my_lookup.get_template('index.html')
@@ -36,7 +36,8 @@ class Infringer(object):
             index_movies = cherrypy.request.db.query(Movie).filter(Movie.status == 'Ready').all()
             downloaded_shows = cherrypy.request.db.query(Episode).filter(Episode.retrieved_on != None).order_by(
                 Episode.retrieved_on.desc())[:50]
-            return index_template.render(shows=index_shows, movies=index_movies, upcoming=upcoming_episodes, downloaded= downloaded_shows)
+            return index_template.render(shows=index_shows, movies=index_movies, upcoming=upcoming_episodes,
+                                         downloaded=downloaded_shows)
 
     @cherrypy.expose
     def show(self, show_id):
@@ -335,7 +336,7 @@ class Infringer(object):
             release_year = urllib.parse.parse_qs(parsed.query)['y'][0]
             mdb_url_param = '%s' % (urllib.parse.quote_plus(movie_name))
             mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&year=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % (
-            mdb_url_param, release_year)
+                mdb_url_param, release_year)
             mdb_response = urllib.request.urlopen(mdb_link)
             mdb_json = mdb_response.read()
             mdb_json_string = bytes.decode(mdb_json)
@@ -349,7 +350,7 @@ class Infringer(object):
                 if len(mdb_data['results']) == 1:
                     new_img = 'http://image.tmdb.org/t/p/w154' + mdb_data['results'][0]['poster_path']
 
-                elif len(mdb_data['results']) > 0:  #find the correct image by name and year
+                elif len(mdb_data['results']) > 0:  # find the correct image by name and year
                     for mdb_movie in mdb_data['results']:
                         if mdb_movie['title'] == movie_name and mdb_movie['release_date'][:4] == release_year:
                             new_img = 'http://image.tmdb.org/t/p/w154' + mdb_movie['poster_path']
@@ -403,13 +404,16 @@ def startup():
     config_session = models.connect()
     config = config_session.query(models.Config).first()
 
-    if config is not None:
-        cherrypy.config.update({
-            'server.socket_host': config.ip,
-            'server.socket_port': int(config.port),
-        })
+    if config is None:
+        config = models.Config()
+        config_session.add(config)
+        config_session.commit()
 
-    config_session.remove()
+    cherrypy.config.update({
+        'server.socket_host': config.ip,
+        'server.socket_port': int(config.port),
+    })
+    # config_session.remove()
 
     scan_refresh_scheduler.add_job(LinkRetrieve.handle_downloads, 'cron', hour='*/' + str(config.scan_interval),
                                    id='scan_job', misfire_grace_time=60)
