@@ -91,14 +91,18 @@ def search_sites(list_of_shows):
         tv_is_completed = Searcher.list_completed(list_of_shows)
         if tv_is_completed and source.media_type == 'tv':  # skip tv types list is completed
             continue
-
+        if source.media_type == 'search':
+            continue
         browser = source_login(source)
         if browser is None:
             ActionLog.log('%s could not logon' % source.login_page)
             continue
         else:
             ActionLog.log('Scanning %s for %s' % (source.domain, source.media_type))
-            soup = browser.get(source.url).soup
+            try:
+                soup = browser.get(source.url).soup
+            except Exception as ex:
+                continue
             soup = soup.select(source.link_select)[:source.max_search_links + 1]
 
             for link in soup:
