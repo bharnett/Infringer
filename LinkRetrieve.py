@@ -238,39 +238,36 @@ def show_search(episode_id, db):
             soup = browser.get(source.url).soup  # this is the search page
             # put together search form only for tehparadox for now
             if 'tehparadox.com' in source.domain:
-                search_form = soup.select('#searchform')[0]
-                search_form.select('.bginput')[0]['value'] = str(search_show)
-                response_page = browser.submit(search_form, source.url)
+                response_page = browser.get(source.url)
 
-            elif 'warez-bb.org' in source.domain:
-                search_form = soup.select('form')[0]
-                search_form.select('#autofocus')[0]['value'] = str(search_show)
-                response_page = browser.submit(search_form, source.url)
-                #
-                # elif 'x264-bb.com' in source.domain:
-                #
-                # else:
-                #     # do nothing
-            all_links = response_page.soup.select('a')
-            usable_links = [x for x in all_links if
-                            str(search_show) in x.text.lower() and has_hd_format(x.text.lower())]
-            preference_links = [p for p in usable_links if config.hd_format in p.text.lower()]
+            for i in range(1, source.max_search_links * 10):
 
-            if len(preference_links) == 0:
-                preference_links = usable_links
-            if len(preference_links) > 0:
-                search_show.found = True
-                for l in preference_links:
-                    search_show.link = urljoin(source.domain, l.get('href'))
-                    tv_response = browser.get(search_show.link)
-                    if tv_response.status_code == 200:
-                        hd_format = '720p' if '720p' in l else '1080p' # will to accept any format on the search
-                        dl_links = get_download_links(tv_response.soup, config, source.domain, hd_format)
-                        if len(dl_links) > 0:  # check to make sure there are usable links.
-                            process_tv_link(db, config, search_show, dl_links)
-                            break  #success - don't check any more links
-                        else:
-                            continue  #no dice, check the next link
+                all_links = response_page.soup.select('a')
+                usable_links = [x for x in all_links if
+                                str(search_show) in x.text.lower() and has_hd_format(x.text.lower())]
+                preference_links = [p for p in usable_links if config.hd_format in p.text.lower()]
+
+                if len(preference_links) == 0:
+                    preference_links = usable_links
+                if len(preference_links) > 0:
+                    search_show.found = True
+                    for l in preference_links:
+                        search_show.link = urljoin(source.domain, l.get('href'))
+                        browser = source_login(source) # login again just to make sure we are logged in when getting page
+                        tv_response = browser.get(search_show.link)
+                        if tv_response.status_code == 200:
+                            hd_format = '720p' if '720p' in l else '1080p' # will to accept any format on the search
+                            dl_links = get_download_links(tv_response.soup, config, source.domain, hd_format)
+                            if len(dl_links) > 0:  # check to make sure there are usable links.
+                                process_tv_link(db, config, search_show, dl_links)
+                                break  #success - don't check any more links
+                            else:
+                                continue  #no dice, check the next link
+                else:
+                    # get next page
+                    next_link = response_page.soup.findAll('a', {'rel': 'next'})[0]['href']
+                    response_page = browser.get(next_link)
+
     return e.status
 
 
@@ -285,6 +282,8 @@ def process_tv_link(db, config, show_searcher, episode_links):
         db_episode.status = "Retrieved"
         db_episode.retrieved_on = datetime.date.today()
         db.commit()
+
+
 def process_movie_link(db, link):
     regex = re.compile(r'[sS]\d\d[eE]\d\d')
     regex_dated = re.compile(r'[0-9]{4}[\s\S][0-1][0-9][\s\S][0-3][0-9]')
