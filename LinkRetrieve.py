@@ -241,32 +241,34 @@ def show_search(episode_id, db):
                 response_page = browser.get(source.url)
 
             for i in range(1, source.max_search_links * 10):
-
-                all_links = response_page.soup.select('a')
-                usable_links = [x for x in all_links if
-                                str(search_show) in x.text.lower() and has_hd_format(x.text.lower())]
-                preference_links = [p for p in usable_links if config.hd_format in p.text.lower()]
-
-                if len(preference_links) == 0:
-                    preference_links = usable_links
-                if len(preference_links) > 0:
-                    search_show.found = True
-                    for l in preference_links:
-                        search_show.link = urljoin(source.domain, l.get('href'))
-                        browser = source_login(source) # login again just to make sure we are logged in when getting page
-                        tv_response = browser.get(search_show.link)
-                        if tv_response.status_code == 200:
-                            hd_format = '720p' if '720p' in l else '1080p' # will to accept any format on the search
-                            dl_links = get_download_links(tv_response.soup, config, source.domain, hd_format)
-                            if len(dl_links) > 0:  # check to make sure there are usable links.
-                                process_tv_link(db, config, search_show, dl_links)
-                                break  #success - don't check any more links
-                            else:
-                                continue  #no dice, check the next link
+                if search_show.found:
+                    break
                 else:
-                    # get next page
-                    next_link = response_page.soup.findAll('a', {'rel': 'next'})[0]['href']
-                    response_page = browser.get(next_link)
+                    all_links = response_page.soup.select('a')
+                    usable_links = [x for x in all_links if
+                                    str(search_show) in x.text.lower() and has_hd_format(x.text.lower())]
+                    preference_links = [p for p in usable_links if config.hd_format in p.text.lower()]
+
+                    if len(preference_links) == 0:
+                        preference_links = usable_links
+                    if len(preference_links) > 0:
+                        search_show.found = True
+                        for l in preference_links:
+                            search_show.link = urljoin(source.domain, l.get('href'))
+                            browser = source_login(source) # login again just to make sure we are logged in when getting page
+                            tv_response = browser.get(search_show.link)
+                            if tv_response.status_code == 200:
+                                hd_format = '720p' if '720p' in l else '1080p' # will to accept any format on the search
+                                dl_links = get_download_links(tv_response.soup, config, source.domain, hd_format)
+                                if len(dl_links) > 0:  # check to make sure there are usable links.
+                                    process_tv_link(db, config, search_show, dl_links)
+                                    break  #success - don't check any more links
+                                else:
+                                    continue  #no dice, check the next link
+                    else:
+                        # get next page
+                        next_link = response_page.soup.findAll('a', {'rel': 'next'})[0]['href']
+                        response_page = browser.get(next_link)
 
     return e.status
 
