@@ -17,21 +17,21 @@ def add_episodes(series_id, t=None, db=None, is_mass_update=False):
     update_show = db.query(Show).filter(Show.show_id == series_id).first()
 
     models.ActionLog.log('Updating "%s"' % update_show.show_name)
-    # update_show.episodes.delete()
-    # db.commit()
-    if update_show.episodes.count() > 0:
-        # update unaired show first with new names & air date
-        for db_episode in [s for s in update_show.episodes if s.status == 'Pending']:
-            # find the episode ID in tv_db episode listing
-            updated_episode_list = [x for x in episodes if x['id'] == str(db_episode.id)]
-            if len(updated_episode_list) > 0:
-                updated_episode = updated_episode_list[0]
-                db_episode.air_date = None if updated_episode['firstaired'] is None else \
-                    datetime.datetime.strptime(updated_episode['firstaired'], '%Y-%m-%d').date()
-                db_episode.episode_name = str(updated_episode).replace('<', '').replace('>', '')
-
-        # get episodes that aren't in the show's episode collection but are in the tvdb response
-        episodes = [x for x in episodes if update_show.episodes.filter(Episode.id == int(x['id'])).count() == 0 and x['seasonnumber'] != '0']
+    update_show.episodes.delete()
+    db.commit()
+    # if update_show.episodes.count() > 0:
+    #     # update unaired show first with new names & air date
+    #     for db_episode in [s for s in update_show.episodes if s.status == 'Pending']:
+    #         # find the episode ID in tv_db episode listing
+    #         updated_episode_list = [x for x in episodes if x['id'] == str(db_episode.id)]
+    #         if len(updated_episode_list) > 0:
+    #             updated_episode = updated_episode_list[0]
+    #             db_episode.air_date = None if updated_episode['firstaired'] is None else \
+    #                 datetime.datetime.strptime(updated_episode['firstaired'], '%Y-%m-%d').date()
+    #             db_episode.episode_name = str(updated_episode).replace('<', '').replace('>', '')
+    #
+    #     # get episodes that aren't in the show's episode collection but are in the tvdb response
+    #     episodes = [x for x in episodes if update_show.episodes.filter(Episode.id == int(x['id'])).count() == 0 and x['seasonnumber'] != '0']
 
     for e in episodes:
         if e['seasonnumber'] == '0':
