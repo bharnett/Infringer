@@ -9,7 +9,6 @@ from models import Show, Episode, Movie, MovieURL, ScanURL, Config, ActionLog
 import models
 from urllib.parse import urlparse, urljoin
 
-
 class UploadLink(object):
     def __init__(self, link_text):
         self.link_text = link_text
@@ -81,6 +80,10 @@ class Searcher(object):
 def handle_downloads():
     pending_episodes = get_episode_list()
     search_sites(pending_episodes)
+
+    # create index after searched the list posts
+    #Indexer.InitialIndex()
+    #Indexer.SearchDbForShow(pending_episodes) # search db for indexed options
 
 
 def search_sites(list_of_shows):

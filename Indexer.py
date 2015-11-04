@@ -3,7 +3,8 @@ import mechanicalsoup
 from models import Show, LinkIndex, ScanURL, ActionLog
 import models
 import LinkRetrieve
-from LinkRetrieve import Searcher
+from LinkRetrieve import source_login
+
 
 
 def InitialIndex():
@@ -15,7 +16,7 @@ def InitialIndex():
         #start new indexing thingy
     source = db.query(ScanURL).filter(ScanURL.media_type == "index").first()
     if (source):
-        browser = LinkRetrieve.source_login(source)
+        browser = source_login(source)
         if browser is None:
             ActionLog.log('%s could not logon' % source.login_page)
         else:
@@ -69,33 +70,41 @@ def InitialIndex():
                     i += 1
 
 
-def SearchDbForShow(list_of_shows, browser, source):
-    for show_searcher in [l for l in list_of_shows if not l.retrieved]:
-        db = models.connect()
-        config = db.query(models.Config).first()
-        matching_indexes = []
-        for search_text in show_searcher.search_list:  # all potential links to list
-            matching_indexes.append(db.query(LinkIndex).filter(search_text in LinkIndex.link_text))
+def SearchDbForShow(list_of_shows):
+    db = models.connect()
+    source = db.query(ScanURL).filter(ScanURL.media_type == "index").first()
 
-        if len(matching_indexes) > 0:
-            for match in matching_indexes:
-                tv_response = browser.get(match.link_url)
-                if tv_response.status_code == 200:
-                    episode_soup = tv_response.soup
-                    episode_links = LinkRetrieve.get_download_links(episode_soup, config, source.domain, config.hd_format)
-                    # check to make sure links are active
-                    for l in episode_links:
-                        link_response = browser.get(l)
-                        if link_response.status_code == 404:
-                            episode_links = None
-                            break
+    if source:
+        browser = LinkRetrieve.source_login(source)
+        if browser is None:
+            ActionLog.log('%s could not logon' % source.login_page)
+        else:
+            for show_searcher in [l for l in list_of_shows if not l.retrieved]:
+                config = db.query(models.Config).first()
+                matching_indexes = []
+                for search_text in show_searcher.search_list:  # all potential links to list
+                    matching_indexes.extend(db.query(LinkIndex).filter(LinkIndex.link_text.like('%' + search_text + '%')).filter(LinkIndex.link_text.like('%' + show_searcher.episode_code + '%')).all())
 
-                    if episode_links:
+                if len(matching_indexes) > 0:
+                    for match in matching_indexes:
+                        tv_response = browser.get(match.link_url)
+                        if tv_response.status_code == 200:
+                            episode_soup = tv_response.soup
+                            episode_links = LinkRetrieve.get_download_links(episode_soup, config, source.domain, config.hd_format)
+                            # check to make sure links are active
+                            for l in episode_links:
+                                link_response = browser.get(l)
+                                if link_response.status_code == 404:
+                                    episode_links = None
+                                    break
 
-                        LinkRetrieve.process_tv_link(db, config, show_searcher, episode_links)
-                        break  # since we got the download, we can break out of the loop
+                            if episode_links:
+                                LinkRetrieve.process_tv_link(db, config, show_searcher, episode_links)
+                                break  # since we got the download, we can break out of the loop
 
 
+x = LinkRetrieve.get_episode_list()
+SearchDbForShow(x)
 
-InitialIndex()
+#InitialIndex()
 
