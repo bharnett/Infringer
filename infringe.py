@@ -250,6 +250,8 @@ class Infringer(object):
 
         return json.dumps(status)
 
+
+
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -366,6 +368,37 @@ class Infringer(object):
         cherrypy.server.httpserver = None
         cherrypy.engine.exit()
         return shutdown_template.render()
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def scan_show_url(self):
+        ar = AjaxResponse('Data source updated...')
+        try:
+            data = cherrypy.request.json
+            show_id = data['show_id']
+            url_to_scan = data['url']
+
+
+
+            if action == 'add':
+                new_scanurl = ScanURL()
+                ar.message = 'Data source added...'
+                cherrypy.request.db.add(new_scanurl)
+            else:
+                u = cherrypy.request.db.query(ScanURL).filter(ScanURL.id == data['id']).first()
+                if action == 'update':
+                    setattr(u, data['propertyName'], data['propertyValue'])
+                elif action == 'delete':
+                    ar.message = 'Data source deleted...'
+                    cherrypy.request.db.delete(u)
+            cherrypy.request.db.commit()
+        except Exception as ex:
+            ar.status = 'error'
+            ar.message = str(Exception)
+
+        return ar.to_JSON()
+
 
 
 def restart():

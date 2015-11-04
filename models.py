@@ -114,6 +114,12 @@ class ActionLog(Base):
                 s.delete(e)
         s.commit()
 
+class LinkIndex(Base):
+    __tablename__ = "linkindex"
+    id = Column(Integer, primary_key=True)
+    link_text = Column(String)
+    link_url = Column(String)
+
 
 class Config(Base):
     __tablename__ = 'config'
