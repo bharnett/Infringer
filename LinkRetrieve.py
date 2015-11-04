@@ -1,6 +1,8 @@
+import json
 import os
 import datetime
 import re
+import urllib
 
 import mechanicalsoup
 from models import Show, Episode, Movie, MovieURL, ScanURL, Config, ActionLog
@@ -39,7 +41,7 @@ class Searcher(object):
 
     @staticmethod
     def populate_episode(episode, parent_dir):
-        edit_chars = [('', ''), ('.', ' '), ('.', '')]  # first one handles initial non-char-edited name
+        edit_chars = [('', ''), ('.', ' '), ('.', ''), ('&', 'and')]  # first one handles initial non-char-edited name
         second_chars = [('\'', '')]
         # remove dates from show names (2014), (2009) for accurate string searches
         edited_show_name = re.sub('[\(][0-9]{4}[\)]', '', episode.show.show_name)
@@ -170,6 +172,7 @@ def search_sites(list_of_shows):
                             db.commit()
     db.remove()
 
+
 def source_login(source):
     # source_domain = urlparse(source.login_page).netloc
     browser = mechanicalsoup.Browser()
@@ -224,6 +227,52 @@ def get_episode_list():
 
 
 def show_search(episode_id, db):
+    config = db.query(Config).first()
+    e = db.query(Episode).get(episode_id)
+    search_show = Searcher.populate_episode(e, config.tv_parent_directory)
+    search_sources = db.query(ScanURL).filter(ScanURL.media_type == 'search').order_by(ScanURL.priority).all()
+
+    for source in search_sources:
+        browser = source_login(source)
+        if browser is not None:
+            all_hits = []
+            query = urllib.parse.urlencode({'q': 'site:%s %s' % ('tehparadox.com', str(search_show))})
+            url = 'http://ajax.googleapis.com/ajax/services/search/web?v=1.0&%s' % query
+            search_response = urllib.request.urlopen(url)
+            search_results = search_response.read().decode("utf8")
+            results = json.loads(search_results)
+            data = results['responseData']
+            hits = data['results']
+            all_hits.extend(hits)
+            # for i in range(1, len(data['cursor']['pages'])):
+            #     replace_string = 'start=%s' % str(i-1)
+            #     new_string = 'start=%s' % data['cursor']['pages'][i]['start']
+            #     new_url = data['cursor']['moreResultsUrl'].replace(replace_string, new_string)
+            #     resp = urllib.request.urlopen(new_url)
+            #     search_results = search_response.read().decode("utf8")
+            #     results = json.loads(search_results)
+            #     all_hits.append(results['responseData']['results'])
+
+            usable_links = [x for x in hits if search_show.search_me(x['titleNoFormatting'].lower())] # and has_hd_format(x['titleNoFormatting'].lower())]
+            preference_links = [p for p in usable_links if config.hd_format in p['url'].lower()]
+            if len(preference_links) > 0:
+                usable_links = preference_links
+
+            for l in usable_links:
+                if search_show.retrieved:
+                    break
+                else:
+                    tv_response = browser.get(l['url'])
+                    if tv_response.status_code == 200:
+                        episode_soup = tv_response.soup
+                        episode_links = get_download_links(episode_soup, config, source.domain, config.hd_format)
+                        process_tv_link(db, config, search_show, episode_links)
+            if search_show.retrieved:
+                break
+    return e.status
+
+
+def show_search_old(episode_id, db):
     # db = models.connect()
     config = db.query(Config).first()
 
@@ -385,6 +434,7 @@ def has_hd_format(link_text):
 
 if __name__ == "__main__":
     handle_downloads()
+
 
 
 

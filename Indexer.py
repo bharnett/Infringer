@@ -3,6 +3,7 @@ import mechanicalsoup
 from models import Show, LinkIndex, ScanURL, ActionLog
 import models
 import LinkRetrieve
+from LinkRetrieve import Searcher
 
 
 def InitialIndex():
@@ -36,7 +37,7 @@ def InitialIndex():
 
                 all_rows_soup = soup.select(source.link_select)  #  get all rows $("#threadbits_forum_73 tr").soup
                 for row in all_rows_soup:
-                    if 'STICKY' in row.text.upper():
+                    if 'STICKY' in row.text.upper():  # skip sticky links
                         continue
                     else:
                         row_links = row.find_all('a')
@@ -66,6 +67,33 @@ def InitialIndex():
                 else:
                     print(i)
                     i += 1
+
+
+def SearchDbForShow(list_of_shows, browser, source):
+    for show_searcher in [l for l in list_of_shows if not l.retrieved]:
+        db = models.connect()
+        config = db.query(models.Config).first()
+        matching_indexes = []
+        for search_text in show_searcher.search_list:  # all potential links to list
+            matching_indexes.append(db.query(LinkIndex).filter(search_text in LinkIndex.link_text))
+
+        if len(matching_indexes) > 0:
+            for match in matching_indexes:
+                tv_response = browser.get(match.link_url)
+                if tv_response.status_code == 200:
+                    episode_soup = tv_response.soup
+                    episode_links = LinkRetrieve.get_download_links(episode_soup, config, source.domain, config.hd_format)
+                    # check to make sure links are active
+                    for l in episode_links:
+                        link_response = browser.get(l)
+                        if link_response.status_code == 404:
+                            episode_links = None
+                            break
+
+                    if episode_links:
+
+                        LinkRetrieve.process_tv_link(db, config, show_searcher, episode_links)
+                        break  # since we got the download, we can break out of the loop
 
 
 
