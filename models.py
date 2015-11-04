@@ -143,6 +143,12 @@ class Config(Base):
     def get_intervals():
         return list(range(2, 13))
 
+    def is_populated(self):
+        if not self.crawljob_directory and not self.tv_parent_directory and not self.movies_directory:
+            return False
+        else:
+            return True
+
     def domain_link_check(self, link):
         domains = self.file_host_domain.split(',')
         file_host_exists = False

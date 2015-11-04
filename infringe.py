@@ -15,6 +15,7 @@ from mako.template import Template
 from mako.lookup import TemplateLookup
 from webutils import AjaxResponse
 from apscheduler.schedulers.background import BackgroundScheduler
+
 template_dir = os.path.dirname(os.path.normpath(os.path.abspath(__file__))) + '/html'
 my_lookup = TemplateLookup(directories=[template_dir])
 scan_refresh_scheduler = BackgroundScheduler()
@@ -25,7 +26,7 @@ class Infringer(object):
     @cherrypy.expose
     def index(self):
         config = cherrypy.request.db.query(Config).first()
-        if config is None:
+        if not config.is_populated():
             raise cherrypy.HTTPRedirect("/config")
         else:
             index_template = my_lookup.get_template('index.html')
@@ -33,7 +34,10 @@ class Infringer(object):
                 Episode.status == 'Pending').order_by(Episode.air_date)[:25]
             index_shows = cherrypy.request.db.query(Show).order_by(Show.show_name)
             index_movies = cherrypy.request.db.query(Movie).filter(Movie.status == 'Ready').all()
-            return index_template.render(shows=index_shows, movies=index_movies, upcoming=upcoming_episodes)
+            downloaded_shows = cherrypy.request.db.query(Episode).filter(Episode.retrieved_on != None).order_by(
+                Episode.retrieved_on.desc())[:50]
+            return index_template.render(shows=index_shows, movies=index_movies, upcoming=upcoming_episodes,
+                                         downloaded=downloaded_shows)
 
     @cherrypy.expose
     def show(self, show_id):
@@ -52,9 +56,14 @@ class Infringer(object):
             data = cherrypy.request.json
             episode_id = data['episodeid']
             change_to_value = data['changeto']
-            e = cherrypy.request.db.query(Episode).filter(Episode.id == episode_id).first()
-            e.status = change_to_value
-            cherrypy.request.db.commit()
+            if (change_to_value == 'search'):
+                new_status = LinkRetrieve.show_search(episode_id, cherrypy.request.db)
+                status = 'success' if new_status == 'Retrieved' else 'failed'
+            else:
+                change_to_value = change_to_value.title()
+                e = cherrypy.request.db.query(Episode).filter(Episode.id == episode_id).first()
+                e.status = change_to_value
+                cherrypy.request.db.commit()
         except Exception as ex:
             ActionLog.log(ex)
             status = 'error'
@@ -122,10 +131,12 @@ class Infringer(object):
 
             # check for changes that need a reschedule
             if c.scan_interval != int(data['scan_interval']):
-                scan_refresh_scheduler.reschedule_job('scan_job', trigger='cron', hour='*/' + str(data['scan_interval']))
+                scan_refresh_scheduler.reschedule_job('scan_job', trigger='cron',
+                                                      hour='*/' + str(data['scan_interval']))
 
             if c.refresh_day != data['refresh_day'] or c.refresh_hour != int(data['refresh_hour']):
-                scan_refresh_scheduler.reschedule_job('refresh_job', trigger='cron', day_of_week=data['refresh_day'], hour=str(data['refresh_hour']))
+                scan_refresh_scheduler.reschedule_job('refresh_job', trigger='cron', day_of_week=data['refresh_day'],
+                                                      hour=str(data['refresh_hour']))
 
             c.scan_interval = data['scan_interval']
             c.refresh_day = data['refresh_day']
@@ -297,7 +308,8 @@ class Infringer(object):
                     jdownloader_string = ''
                     for l in m.movieurls.all():
                         jdownloader_string += l.url + ' '
-                    LinkRetrieve.write_crawljob_file(m.name, config.movies_directory, jdownloader_string, config.crawljob_directory)
+                    LinkRetrieve.write_crawljob_file(m.name, config.movies_directory, jdownloader_string,
+                                                     config.crawljob_directory)
                     ActionLog.log('"%s\'s" .crawljob file created.' % m.name)
                     m.status = 'Retrieved'
                 cherrypy.request.db.commit()
@@ -321,10 +333,12 @@ class Infringer(object):
             omdb_api_link = m.get_IMDB_link()
             parsed = urllib.parse.urlparse(omdb_api_link)
             urllib.parse.urlparse(parsed.query)
-            movie_name = urllib.parse.parse_qs(parsed.query)['t'][0].replace('+', ' ') # get the real movie name to use later
+            movie_name = urllib.parse.parse_qs(parsed.query)['t'][0].replace('+',
+                                                                             ' ')  # get the real movie name to use later
             release_year = urllib.parse.parse_qs(parsed.query)['y'][0]
-            mdb_url_param = '%s_%s' % (urllib.parse.quote_plus(movie_name), release_year)
-            mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % mdb_url_param
+            mdb_url_param = '%s' % (urllib.parse.quote_plus(movie_name))
+            mdb_link = 'https://api.themoviedb.org/3/search/movie?query=%s&year=%s&api_key=79f408a7da4bdb446799cb45bbb43e7b' % (
+                mdb_url_param, release_year)
             mdb_response = urllib.request.urlopen(mdb_link)
             mdb_json = mdb_response.read()
             mdb_json_string = bytes.decode(mdb_json)
@@ -332,13 +346,13 @@ class Infringer(object):
             ombdapi_resp = urllib.request.urlopen(omdb_api_link)
             ombdapi_json = json.loads(bytes.decode(ombdapi_resp.read()))
 
-            #set default
+            # set default
             new_img = 'http://146990c1ab4c59b8bbd0-13f1a0753bafdde5bf7ad71d7d5a2da6.r94.cf1.rackcdn.com/techdiff.jpg'
             try:
                 if len(mdb_data['results']) == 1:
                     new_img = 'http://image.tmdb.org/t/p/w154' + mdb_data['results'][0]['poster_path']
 
-                elif len(mdb_data['results']) > 0:  #find the correct image by name and year
+                elif len(mdb_data['results']) > 0:  # find the correct image by name and year
                     for mdb_movie in mdb_data['results']:
                         if mdb_movie['title'] == movie_name and mdb_movie['release_date'][:4] == release_year:
                             new_img = 'http://image.tmdb.org/t/p/w154' + mdb_movie['poster_path']
@@ -423,25 +437,30 @@ def startup():
     config_session = models.connect()
     config = config_session.query(models.Config).first()
 
-    if config is not None:
-        cherrypy.config.update({
-            'server.socket_host': config.ip,
-            'server.socket_port': int(config.port),
-        })
+    if config is None:
+        config = models.Config()
+        config_session.add(config)
+        config_session.commit()
 
-    config_session.remove()
+    cherrypy.config.update({
+        'server.socket_host': config.ip,
+        'server.socket_port': int(config.port),
+    })
+    # config_session.remove()
 
-    scan_refresh_scheduler.add_job(LinkRetrieve.handle_downloads, 'cron', hour='*/' + str(config.scan_interval), id='scan_job', misfire_grace_time=60)
-    scan_refresh_scheduler.add_job(Utils.update_all, 'cron', day_of_week=config.refresh_day, hour=str(config.refresh_hour), id='refresh_job', misfire_grace_time=60)
+    scan_refresh_scheduler.add_job(LinkRetrieve.handle_downloads, 'cron', hour='*/' + str(config.scan_interval),
+                                   id='scan_job', misfire_grace_time=60)
+    scan_refresh_scheduler.add_job(Utils.update_all, 'cron', day_of_week=config.refresh_day,
+                                   hour=str(config.refresh_hour), id='refresh_job', misfire_grace_time=60)
     scan_refresh_scheduler.start()
 
     models.SAEnginePlugin(cherrypy.engine).subscribe()
     cherrypy.tools.db = models.SATool()
     cherrypy.tree.mount(Infringer(), '/', conf)
     cherrypy.engine.start()
-    webbrowser.get().open('http://%s:%s' % (cherrypy.config['server.socket_host'], str(cherrypy.config['server.socket_port'])))
+    webbrowser.get().open(
+        'http://%s:%s' % (cherrypy.config['server.socket_host'], str(cherrypy.config['server.socket_port'])))
     cherrypy.engine.block()
-
 
 
 if __name__ == '__main__':
