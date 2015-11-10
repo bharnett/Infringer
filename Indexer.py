@@ -22,52 +22,62 @@ def InitialIndex():
         else:
 
             # this is the first page, we have to index by 1 for each subsequent page
-
             i = 1
             is_indexed = False
             duplicates_encountered = 0
+            try:
+                while is_indexed == False:
 
-            while is_indexed == False:
+                    link = source.url
+                    if i > 1:
+                        link = '%sindex%s.html' % (source.url, i)
 
-                link = source.url
-                if i > 1:
-                    link = '%sindex%s.html' % (source.url, i)
+                    if i%100 == 0:
+                        browser = source_login(source)  # reset the browser session every 100 pages
 
-                soup = browser.get(link).soup
+                    soup = browser.get(link).soup
 
 
-                all_rows_soup = soup.select(source.link_select)  #  get all rows $("#threadbits_forum_73 tr").soup
-                for row in all_rows_soup:
-                    if 'STICKY' in row.text.upper():  # skip sticky links
-                        continue
-                    else:
-                        row_links = row.find_all('a')
-                        index_link = row_links[0]
-                        l = LinkIndex()
-                        l.link_text = index_link.text
-                        l.link_url = index_link.attrs['href']
-                        l.id = int(index_link.attrs['id'].split('_')[2])
-
-                        existing_link_index = db.query(LinkIndex).filter(LinkIndex.id == l.id).first()
-                        if existing_link_index:
-                            duplicates_encountered += 1
-                            if duplicates_encountered > 70:  #this should be 2 plus pages
-                                is_indexed = True
-                                break
-                            else:
-                                continue
+                    all_rows_soup = soup.select(source.link_select)  #  get all rows $("#threadbits_forum_73 tr").soup
+                    page_adds = 0
+                    for row in all_rows_soup:
+                        if 'STICKY' in row.text.upper():  # skip sticky links
+                            continue
                         else:
-                            db.add(l)
+                            row_links = row.find_all('a')
+                            links_with_text = [t for t in row_links if t.text != '']
+                            index_link = links_with_text[0]
+                            l = LinkIndex()
+                            l.link_text = index_link.text
+                            l.link_url = index_link.attrs['href']
+                            l.id = int(index_link.attrs['id'].split('_')[2])
+
+                            if l.link_text == '':
+                                continue
+
+                            existing_link_index = db.query(LinkIndex).filter(LinkIndex.id == l.id).first()
+                            if existing_link_index:
+                            #     duplicates_encountered += 1
+                            #     if duplicates_encountered > 70:  #this should be 2 plus pages
+                            #         is_indexed = True
+                            #         break
+                            #     else:
+                            #         continue
+                                continue
+                            else:
+                                page_adds += 1
+                                db.add(l)
+                    if page_adds > 0:
+                        db.commit()
 
 
-
-                db.commit()  # commit after a page
-
-                if i == 100000:
-                    is_indexed = True
-                else:
-                    print(i)
-                    i += 1
+                    if i == 100000:
+                        is_indexed = True
+                    else:
+                        print(i)
+                        i += 1
+            except Exception as ex:
+                print(ex)
 
 
 def SearchDbForShow(list_of_shows):
@@ -103,8 +113,8 @@ def SearchDbForShow(list_of_shows):
                                 break  # since we got the download, we can break out of the loop
 
 
-x = LinkRetrieve.get_episode_list()
-SearchDbForShow(x)
+# x = LinkRetrieve.get_episode_list()
+# SearchDbForShow(x)
 
-#InitialIndex()
+InitialIndex()
 
