@@ -7,7 +7,7 @@ from LinkRetrieve import source_login
 
 
 
-def InitialIndex():
+def CreateIndexes(is_full_index = False):
     db = models.connect()
     # check if index is empty to make the default index
     indexes = db.query(LinkIndex).all()
@@ -57,13 +57,12 @@ def InitialIndex():
 
                             existing_link_index = db.query(LinkIndex).filter(LinkIndex.id == l.id).first()
                             if existing_link_index:
-                            #     duplicates_encountered += 1
-                            #     if duplicates_encountered > 70:  #this should be 2 plus pages
-                            #         is_indexed = True
-                            #         break
-                            #     else:
-                            #         continue
-                                continue
+                                duplicates_encountered += 1
+                                if duplicates_encountered > 35 and not is_full_index:  #this should be 1 plus pages
+                                    is_indexed = True
+                                    break
+                                else:
+                                    continue
                             else:
                                 page_adds += 1
                                 db.add(l)
@@ -116,5 +115,5 @@ def SearchDbForShow(list_of_shows):
 # x = LinkRetrieve.get_episode_list()
 # SearchDbForShow(x)
 
-InitialIndex()
+CreateIndexes()
 
