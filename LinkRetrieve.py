@@ -128,6 +128,7 @@ def search_sites(list_of_shows):
                                     ActionLog.log('"%s" found!' % show_searcher)
 
             # open links and get download links for TV
+            link_browser = mechanicalsoup.Browser()  # for checking links
             for show_searcher in [l for l in list_of_shows if not l.retrieved]:
                 if not show_searcher.found:
                     ActionLog.log("%s not found in soup" % str(show_searcher))
@@ -141,11 +142,14 @@ def search_sites(list_of_shows):
                     episode_soup = tv_response.soup
                     episode_links = get_download_links(episode_soup, config, source.domain, config.hd_format)
 
-                    link_browser = mechanicalsoup.Browser()
                     links_valid = True
-                    for fileshare_link in episode_links:
-                        if link_browser.get(fileshare_link) !=200:
+                    for file_share_link in episode_links:
+                        if link_browser.get(file_share_link).status_code != 200:
                             links_valid = False
+                            show_searcher.found = False
+                            show_searcher.retrieved = False
+                            ActionLog.log('Just kidding, "%s" had a bad link or links :(' % show_searcher)
+
                             break
                     
                     if links_valid:
