@@ -140,7 +140,16 @@ def search_sites(list_of_shows):
                 if tv_response.status_code == 200:
                     episode_soup = tv_response.soup
                     episode_links = get_download_links(episode_soup, config, source.domain, config.hd_format)
-                    process_tv_link(db, config, show_searcher, episode_links)
+
+                    link_browser = mechanicalsoup.Browser()
+                    links_valid = True
+                    for fileshare_link in episode_links:
+                        if link_browser.get(fileshare_link) !=200:
+                            links_valid = False
+                            break
+                    
+                    if links_valid:
+                        process_tv_link(db, config, show_searcher, episode_links)
                 #
                 #     write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
                 #                         config.crawljob_directory)
@@ -386,6 +395,7 @@ def get_download_links(soup, config, domain, hd_format='720p'):
         if config.domain_link_check(l) and l[-3:].lower() != 'srt':  # ignore .srt files
             ul = UploadLink(l)
             uploaded_links.append(ul)
+
 
     if len(uploaded_links) == 1:
         # only one uploaded link - return it!
