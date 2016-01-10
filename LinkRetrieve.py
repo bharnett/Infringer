@@ -424,8 +424,15 @@ def get_download_links(soup, config, domain, hd_format='720p'):
                     return_links.append(t.link_text)
         else:
             # get all the parts for tv and movies
+            if len(part_links) == 0:
+                for n in single_extraction_links:
+                    return_links.append(n.link_text)
             for p in part_links:
                 return_links.append(p.link_text)
+
+
+
+        #check to see if link is toast
 
     return return_links
 
