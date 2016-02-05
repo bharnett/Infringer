@@ -8,6 +8,7 @@ import mechanicalsoup
 # import Indexer
 from models import Show, Episode, Movie, MovieURL, ScanURL, Config, ActionLog, LinkIndex
 import models
+import time
 from urllib.parse import urlparse, urljoin
 
 class UploadLink(object):
@@ -92,6 +93,14 @@ def search_sites(list_of_shows):
     config = db.query(Config).first()
     movie_types = ['movies', 'both']
     tv_types = ['tv', 'both']
+
+    # check for jdownloader restart
+    if config.jdownloader_restart:
+        start_command = 'open "/Applications/JDownloader 2.app"'
+        kill_command = 'killall JavaApplicationStub'
+        os.system(kill_command)
+        time.sleep(2)
+        os.system(start_command)
 
     for source in db.query(ScanURL).order_by(ScanURL.priority).all():
         tv_is_completed = Searcher.list_completed(list_of_shows)

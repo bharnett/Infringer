@@ -98,7 +98,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-3 control-label" for="scan_interval">Show Scan Interval (starting at
+                <label class="col-sm-3 control-label" for="scan_interval">show scan interval (starting at
                     midnight)</label>
 
                 <div class="col-sm-9">
@@ -111,7 +111,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-3 control-label" for="refresh_day">TV DB Refresh Day</label>
+                <label class="col-sm-3 control-label" for="refresh_day">tvdb refresh day</label>
 
                 <div class="col-sm-9">
                     <select class="form-control" id="refresh_day" name="refresh_day">
@@ -140,7 +140,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="col-sm-3 control-label" for="refresh_hour">TV DB Refresh Hour</label>
+                <label class="col-sm-3 control-label" for="refresh_hour">tvdb refresh hour</label>
 
                 <div class="col-sm-9">
                     <select class="form-control" id="refresh_hour" name="refresh_hour">
@@ -149,6 +149,14 @@
                                 ${'selected="selected"' if config.refresh_hour==i else ''}>${i}</option>
                         % endfor
                     </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="jdownloader_restart">restart jdownloader before scan?</label>
+
+                <div class="col-sm-9">
+                    <input type="checkbox" class="form-control" id="jdownloader_restart" name="jdownloader_restart"
+                            ${'checked' if config.jdownloader_restart == True else ''}>
                 </div>
             </div>
             <div class="btn-group btn-group-justified" role="group" aria-label="...">
