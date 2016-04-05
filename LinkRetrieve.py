@@ -81,6 +81,9 @@ class Searcher(object):
 
 def handle_downloads():
     pending_episodes = get_episode_list()
+
+    show_search_form(pending_episodes[0].episode_id, models.connect())
+
     search_sites(pending_episodes)
 
     # create index after searched the list posts
@@ -96,10 +99,10 @@ def search_sites(list_of_shows):
 
     # check for jdownloader restart
     if config.jdownloader_restart:
-        start_command = 'open "/Applications/JDownloader 2.app"'
+        start_command = 'open "/Applications/JDownloader"'
         kill_command = 'killall JavaApplicationStub'
         os.system(kill_command)
-        time.sleep(2)
+        time.sleep(10)
         os.system(start_command)
 
     for source in db.query(ScanURL).order_by(ScanURL.priority).all():
@@ -298,22 +301,33 @@ def show_search(episode_id, db):
     return e.status
 
 
-def show_search_old(episode_id, db):
-    # db = models.connect()
+def show_search_form(episode_id, episode_list=[], db=None):
+
+    if db is None:
+        db = models.connect()
+
     config = db.query(Config).first()
 
-    e = db.query(Episode).get(episode_id)
-    search_show = Searcher.populate_episode(e, config.tv_parent_directory)
+    if not episode_id is None:
+        e = db.query(Episode).get(episode_id)
+        search_show = Searcher.populate_episode(e, config.tv_parent_directory)
+
+    episode_list.append(search_show)
 
     search_sources = db.query(ScanURL).filter(ScanURL.media_type == 'search').order_by(ScanURL.priority).all();
     # search_show = search_for_episode
     for source in search_sources:
         browser = source_login(source)
         if browser is not None:
-            soup = browser.get(source.url).soup  # this is the search page
-            # put together search form only for tehparadox for now
-            if 'tehparadox.com' in source.domain:
-                response_page = browser.get(source.url)
+            #soup = browser.get(source.url).soup  # this is the search page
+            # put together search form only for warez.bb for now
+            if 'warez-bb.org' in source.domain:
+                search_page = browser.get(source.url)
+
+                # populate and submit the search page
+                search_form = search_page.soup.select('form')[0]
+                search_form.findAll("input", {"type": "text"})[0]['value'] = search_show.search_list[0]
+                response_page = browser.submit(search_form, search_page.url)
 
             for i in range(1, source.max_search_links * 10):
                 if search_show.found:
@@ -346,6 +360,25 @@ def show_search_old(episode_id, db):
                         response_page = browser.get(next_link)
 
     return e.status
+
+
+def submit_search(browser, search_show, search_page, source):
+    for name in search_show.search_list:
+        #make search term
+        search_text = "%s %s" % (name, search_show.episode_code)
+
+        search_form = search_page.soup.select('form')[0]
+        search_form.findAll("input", {"type": "text"})[0]['value'] = search_text
+        response_page = browser.submit(search_form, search_page.url)
+
+        response_links = response_page.soup.findAll(source.link_select)
+
+        #loop through links
+        
+
+
+
+
 
 
 def process_tv_link(db, config, show_searcher, episode_links):

@@ -141,7 +141,10 @@ class Infringer(object):
             c.scan_interval = data['scan_interval']
             c.refresh_day = data['refresh_day']
             c.refresh_hour = data['refresh_hour']
-            c.jdownloader_restart = True if data['jdownloader_restart'] == 'on' else False
+            if 'jdownloader_restart' in data:
+                c.jdownloader_restart = True if data['jdownloader_restart'] == 'on' else False
+            else:
+                c.jdownloader_restart = False
 
             if data['ip'] != c.ip or data['port'] != c.port:
                 is_restart = True
