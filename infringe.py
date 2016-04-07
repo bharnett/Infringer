@@ -37,7 +37,7 @@ class Infringer(object):
             downloaded_shows = cherrypy.request.db.query(Episode).filter(Episode.retrieved_on != None).order_by(
                 Episode.retrieved_on.desc())[:50]
             return index_template.render(shows=index_shows, movies=index_movies, upcoming=upcoming_episodes,
-                                         downloaded=downloaded_shows)
+                                         downloaded=downloaded_shows, jd_link=config.jd_link)
 
     @cherrypy.expose
     def show(self, show_id):
@@ -141,10 +141,13 @@ class Infringer(object):
             c.scan_interval = data['scan_interval']
             c.refresh_day = data['refresh_day']
             c.refresh_hour = data['refresh_hour']
-            if 'jdownloader_restart' in data:
-                c.jdownloader_restart = True if data['jdownloader_restart'] == 'on' else False
-            else:
-                c.jdownloader_restart = False
+            c.jd_link = data['jd_link']
+            c.jd_path = data['jd_path']
+            #
+            # if 'jdownloader_restart' in data:
+            #     c.jdownloader_restart = True if data['jdownloader_restart'] == 'on' else False
+            # else:
+            #     c.jdownloader_restart = False
 
             if data['ip'] != c.ip or data['port'] != c.port:
                 is_restart = True

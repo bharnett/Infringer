@@ -134,7 +134,8 @@ class Config(Base):
     scan_interval = Column(Integer, default=12)
     refresh_day = Column(String, default='sun')
     refresh_hour = Column(Integer, default=2)
-    jdownloader_restart = Column(Boolean, default=False)
+    jd_link = Column(String, default='')
+    jd_path = Column(String, default='')
 
     @staticmethod
     def get_hours():

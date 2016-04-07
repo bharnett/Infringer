@@ -111,6 +111,20 @@
                 </div>
             </div>
             <div class="form-group">
+                <label class="col-sm-3 control-label" for="jd_path">jDownloader File Path (for auto restart on scan)</label>
+
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="jd_path" name="jd_path" value="${config.jd_path}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-3 control-label" for="jd_link">MyjDownloader.com URL</label>
+
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="jd_link" name="jd_link" value="${config.jd_link}">
+                </div>
+            </div>
+            <div class="form-group">
                 <label class="col-sm-3 control-label" for="refresh_day">tvdb refresh day</label>
 
                 <div class="col-sm-9">
@@ -151,14 +165,7 @@
                     </select>
                 </div>
             </div>
-            <div class="form-group">
-                <label class="col-sm-3 control-label" for="jdownloader_restart">restart jdownloader before scan?</label>
 
-                <div class="col-sm-9">
-                    <input type="checkbox" class="form-control" id="jdownloader_restart" name="jdownloader_restart"
-                            ${'checked' if config.jdownloader_restart == True else ''}>
-                </div>
-            </div>
             <div class="btn-group btn-group-justified" role="group" aria-label="...">
                 <div class="btn-group" role="group">
                     <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-save"></span>

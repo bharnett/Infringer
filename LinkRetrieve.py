@@ -11,6 +11,7 @@ import models
 import time
 from urllib.parse import urlparse, urljoin
 
+
 class UploadLink(object):
     def __init__(self, link_text):
         self.link_text = link_text
@@ -82,13 +83,14 @@ class Searcher(object):
 def handle_downloads():
     pending_episodes = get_episode_list()
 
-    show_search_form(pending_episodes[0].episode_id, models.connect())
-
     search_sites(pending_episodes)
-
+    #
     # create index after searched the list posts
     CreateIndexes(False)
-    SearchDbForShow(pending_episodes) # search db for indexed options
+    SearchDbForShow(pending_episodes)  # search db for indexed options
+
+    # search warez-bb.org by their search form lastly
+    show_search_form(None, pending_episodes, models.connect())
 
 
 def search_sites(list_of_shows):
@@ -98,12 +100,18 @@ def search_sites(list_of_shows):
     tv_types = ['tv', 'both']
 
     # check for jdownloader restart
-    if config.jdownloader_restart:
-        start_command = 'open "/Applications/JDownloader"'
-        kill_command = 'killall JavaApplicationStub'
-        os.system(kill_command)
-        time.sleep(10)
-        os.system(start_command)
+
+    try:
+
+        if len(config.jd_pathj) > 0:
+            start_command = 'open "%s"'
+            # start_command = 'open "/Applications/JDownloader"'
+            kill_command = 'killall JavaApplicationStub'
+            os.system(kill_command)
+            time.sleep(10)
+            os.system(start_command)
+    except Exception as ex:
+        ActionLog.log('%s is not a valid directory for JDownloader in OSX.  JDownloader has not restarted.' % config.jd_path)
 
     for source in db.query(ScanURL).order_by(ScanURL.priority).all():
         tv_is_completed = Searcher.list_completed(list_of_shows)
@@ -163,21 +171,9 @@ def search_sites(list_of_shows):
                             ActionLog.log('Just kidding, "%s" had a bad link or links :(' % show_searcher)
 
                             break
-                    
+
                     if links_valid:
                         process_tv_link(db, config, show_searcher, episode_links)
-                #
-                #     write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
-                #                         config.crawljob_directory)
-                #     ActionLog.log('"%s\'s" .crawljob file created.' % str(show_searcher))
-                #     show_searcher.retrieved = True
-                #     # use episode id to update database
-                #     db_episode = db.query(Episode).filter(
-                #         Episode.id == show_searcher.episode_id).first()  # models.Episode.objects.get(pk=show_searcher.episode_id)
-                #     db_episode.status = "Retrieved"
-                #     db_episode.retrieved_on = datetime.date.today()
-                #     db.commit()
-                    # logger.info("%s retrieved" % show_searcher.episode_code)
 
             if source.media_type in movie_types:  # scan movies
                 for movie in db.query(Movie).all():
@@ -274,7 +270,7 @@ def show_search(episode_id, db):
             hits = data['results']
             all_hits.extend(hits)
             # for i in range(1, len(data['cursor']['pages'])):
-            #     replace_string = 'start=%s' % str(i-1)
+            # replace_string = 'start=%s' % str(i-1)
             #     new_string = 'start=%s' % data['cursor']['pages'][i]['start']
             #     new_url = data['cursor']['moreResultsUrl'].replace(replace_string, new_string)
             #     resp = urllib.request.urlopen(new_url)
@@ -282,7 +278,8 @@ def show_search(episode_id, db):
             #     results = json.loads(search_results)
             #     all_hits.append(results['responseData']['results'])
 
-            usable_links = [x for x in hits if search_show.search_me(x['titleNoFormatting'].lower())] # and has_hd_format(x['titleNoFormatting'].lower())]
+            usable_links = [x for x in hits if search_show.search_me(
+                x['titleNoFormatting'].lower())]  # and has_hd_format(x['titleNoFormatting'].lower())]
             preference_links = [p for p in usable_links if config.hd_format in p['url'].lower()]
             if len(preference_links) > 0:
                 usable_links = preference_links
@@ -302,7 +299,6 @@ def show_search(episode_id, db):
 
 
 def show_search_form(episode_id, episode_list=[], db=None):
-
     if db is None:
         db = models.connect()
 
@@ -311,87 +307,87 @@ def show_search_form(episode_id, episode_list=[], db=None):
     if not episode_id is None:
         e = db.query(Episode).get(episode_id)
         search_show = Searcher.populate_episode(e, config.tv_parent_directory)
+        episode_list.append(search_show)
 
-    episode_list.append(search_show)
+    if len(episode_list) > 0:
+        all_tv = ', '.join(str(s) for s in episode_list)
+    else:
+        all_tv = 'no shows'
+    ActionLog.log('Searching for: %s.' % all_tv)
 
     search_sources = db.query(ScanURL).filter(ScanURL.media_type == 'search').order_by(ScanURL.priority).all();
     # search_show = search_for_episode
     for source in search_sources:
         browser = source_login(source)
         if browser is not None:
-            #soup = browser.get(source.url).soup  # this is the search page
+            # soup = browser.get(source.url).soup  # this is the search page
             # put together search form only for warez.bb for now
             if 'warez-bb.org' in source.domain:
                 search_page = browser.get(source.url)
 
-                # populate and submit the search page
-                search_form = search_page.soup.select('form')[0]
-                search_form.findAll("input", {"type": "text"})[0]['value'] = search_show.search_list[0]
-                response_page = browser.submit(search_form, search_page.url)
+                for episode in episode_list:
+                    ActionLog.log('Searching for %s.' % episode)
+                    time.sleep(15)  # wait five seconds between searches for warez-bb.org
+                    submit_search(browser, episode, search_page, source, db)
 
-            for i in range(1, source.max_search_links * 10):
-                if search_show.found:
-                    break
-                else:
-                    all_links = response_page.soup.select('a')
-                    usable_links = [x for x in all_links if
-                                    str(search_show) in x.text.lower() and has_hd_format(x.text.lower())]
-                    preference_links = [p for p in usable_links if config.hd_format in p.text.lower()]
-
-                    if len(preference_links) == 0:
-                        preference_links = usable_links
-                    if len(preference_links) > 0:
-                        search_show.found = True
-                        for l in preference_links:
-                            search_show.link = urljoin(source.domain, l.get('href'))
-                            browser = source_login(source) # login again just to make sure we are logged in when getting page
-                            tv_response = browser.get(search_show.link)
-                            if tv_response.status_code == 200:
-                                hd_format = '720p' if '720p' in l else '1080p' # will to accept any format on the search
-                                dl_links = get_download_links(tv_response.soup, config, source.domain, hd_format)
-                                if len(dl_links) > 0:  # check to make sure there are usable links.
-                                    process_tv_link(db, config, search_show, dl_links)
-                                    break  #success - don't check any more links
-                                else:
-                                    continue  #no dice, check the next link
-                    else:
-                        # get next page
-                        next_link = response_page.soup.findAll('a', {'rel': 'next'})[0]['href']
-                        response_page = browser.get(next_link)
-
-    return e.status
+            else:
+                ActionLog.log('%s not supported for search yet.' % source.domain)
+        else:
+            ActionLog.log('%s could not logon' % source.login_page)
 
 
-def submit_search(browser, search_show, search_page, source):
+def submit_search(browser, search_show, search_page, source, db):
+    config = db.query(Config).first()
     for name in search_show.search_list:
-        #make search term
+        # make search term
         search_text = "%s %s" % (name, search_show.episode_code)
 
         search_form = search_page.soup.select('form')[0]
         search_form.findAll("input", {"type": "text"})[0]['value'] = search_text
         response_page = browser.submit(search_form, search_page.url)
 
-        response_links = response_page.soup.findAll(source.link_select)
+        response_links = response_page.soup.select(source.link_select)
 
         #loop through links
-        
+        show_links = [x for x in response_links if
+                      name in x.text.lower() and search_show.episode_code in x.text.lower() and config.hd_format in x.text.lower()]
+        non_hd_show_links = [x for x in response_links if name in x.text.lower() and search_show.episode_code in x.text.lower() and config.hd_format not in x.text.lower()]
+        show_links.extend(non_hd_show_links)  # add these to get non-preferential links last
 
 
+        for l in show_links:
+            show_page = "%s/%s" % (source.domain, l['href'])
+            show_page_response = browser.get(show_page)
+            search_show.found = True
+            download_links = get_download_links(show_page_response.soup, config, source.domain)
+            if len(download_links) > 0:
+                ActionLog.log('%s found at %s' % (search_show, show_page))
+                process_tv_link(db, config, search_show, download_links)
+                break  #exit loop as we have the show
+            else:
+                ActionLog.log('%s had no download links at %s' % (search_show, show_page))
+                continue
 
+        #check if show is found to exit higher loop
+        if search_show.retrieved:
+            break
+        else:
+            ActionLog.log('"%s" not found using "%s" (%s of %s)' % (search_show, search_text, search_show.search_list.index(name)+1, len(search_show.search_list)))
 
+    return search_show
 
 
 def process_tv_link(db, config, show_searcher, episode_links):
-        write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
-                            config.crawljob_directory)
-        ActionLog.log('"%s\'s" .crawljob file created.' % str(show_searcher))
-        show_searcher.retrieved = True
-        # use episode id to update database
-        db_episode = db.query(Episode).filter(
-            Episode.id == show_searcher.episode_id).first()  # models.Episode.objects.get(pk=show_searcher.episode_id)
-        db_episode.status = "Retrieved"
-        db_episode.retrieved_on = datetime.date.today()
-        db.commit()
+    write_crawljob_file(str(show_searcher), show_searcher.directory, ' '.join(episode_links),
+                        config.crawljob_directory)
+    ActionLog.log('"%s\'s" .crawljob file created.' % str(show_searcher))
+    show_searcher.retrieved = True
+    # use episode id to update database
+    db_episode = db.query(Episode).filter(
+        Episode.id == show_searcher.episode_id).first()  # models.Episode.objects.get(pk=show_searcher.episode_id)
+    db_episode.status = "Retrieved"
+    db_episode.retrieved_on = datetime.date.today()
+    db.commit()
 
 
 def process_movie_link(db, link):
@@ -442,7 +438,6 @@ def get_download_links(soup, config, domain, hd_format='720p'):
             ul = UploadLink(l)
             uploaded_links.append(ul)
 
-
     if len(uploaded_links) == 1:
         # only one uploaded link - return it!
         return_links.append(uploaded_links[0].link_text)
@@ -474,7 +469,7 @@ def get_download_links(soup, config, domain, hd_format='720p'):
 
 
 
-        #check to see if link is toast
+                # check to see if link is toast
 
     return return_links
 
@@ -499,13 +494,13 @@ def has_hd_format(link_text):
         return False
 
 
-def CreateIndexes(is_full_index = False):
+def CreateIndexes(is_full_index=False):
     db = models.connect()
     # check if index is empty to make the default index
     indexes = db.query(LinkIndex).all()
 
-    #if len(indexes) == 0:
-        #start new indexing thingy
+    # if len(indexes) == 0:
+    #start new indexing thingy
     source = db.query(ScanURL).filter(ScanURL.media_type == "index").first()
     if (source):
         browser = source_login(source)
@@ -524,11 +519,10 @@ def CreateIndexes(is_full_index = False):
                     if i > 1:
                         link = '%sindex%s.html' % (source.url, i)
 
-                    if i%100 == 0:
+                    if i % 100 == 0:
                         browser = source_login(source)  # reset the browser session every 100 pages
 
                     soup = browser.get(link).soup
-
 
                     all_rows_soup = soup.select(source.link_select)  #  get all rows $("#threadbits_forum_73 tr").soup
                     page_adds = 0
@@ -561,7 +555,6 @@ def CreateIndexes(is_full_index = False):
                     if page_adds > 0:
                         db.commit()
 
-
                     if i == 100000:
                         is_indexed = True
                     else:
@@ -584,7 +577,9 @@ def SearchDbForShow(list_of_shows):
                 config = db.query(models.Config).first()
                 matching_indexes = []
                 for search_text in show_searcher.search_list:  # all potential links to list
-                    matching_indexes.extend(db.query(LinkIndex).filter(LinkIndex.link_text.like('%' + search_text + '%')).filter(LinkIndex.link_text.like('%' + show_searcher.episode_code + '%')).all())
+                    matching_indexes.extend(
+                        db.query(LinkIndex).filter(LinkIndex.link_text.like('%' + search_text + '%')).filter(
+                            LinkIndex.link_text.like('%' + show_searcher.episode_code + '%')).all())
 
                 if len(matching_indexes) > 0:
                     for match in matching_indexes:
@@ -603,7 +598,6 @@ def SearchDbForShow(list_of_shows):
                                 process_tv_link(db, config, show_searcher, episode_links)
                                 ActionLog.log('"%s\'s" .crawljob file created.' % str(show_searcher))
                                 break  # since
-
 
 
 if __name__ == "__main__":
