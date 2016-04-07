@@ -103,8 +103,8 @@ def search_sites(list_of_shows):
 
     try:
 
-        if len(config.jd_pathj) > 0:
-            start_command = 'open "%s"'
+        if len(config.jd_path) > 0:
+            start_command = 'open "%s"' % config.jd_path
             # start_command = 'open "/Applications/JDownloader"'
             kill_command = 'killall JavaApplicationStub'
             os.system(kill_command)
