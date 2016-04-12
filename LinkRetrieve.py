@@ -90,7 +90,8 @@ def handle_downloads():
     SearchDbForShow(pending_episodes)  # search db for indexed options
 
     # search warez-bb.org by their search form lastly
-    show_search_form(None, pending_episodes, models.connect())
+    remaining_shows = [s for s in pending_episodes if not s.retrieved]
+    show_search_form(None, remaining_shows, models.connect())
 
 
 def search_sites(list_of_shows):
