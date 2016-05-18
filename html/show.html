@@ -85,15 +85,17 @@
 </body>
 <script type="text/javascript">
     $(document).ready(function () {
-        $('tr .btn-group a').click(OnButtonClick);
+        $('tr .btn-group a').click(function(e) {
+            e.preventDefault();
+            OnButtonClick(this);
+        });
         $('html').niceScroll();
         $('#btn_refresh, #btn_remove').click(OnRemoveRefreshClick);
     })
 
 
-    function OnButtonClick() {
-
-        var source = $(this);
+    function OnButtonClick(s) {
+        var source = $(s);
         var sourceAction = $(source).data('action');
         $.ajax({
             url: '/update_episode',
@@ -140,7 +142,7 @@
                 }
             }
 
-        })
+        });
 
     }
 
