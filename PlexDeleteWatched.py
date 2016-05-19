@@ -21,7 +21,7 @@
 ####################################################################################
 
 PC = "L";
-Host = "192.168.1.12";
+Host = "0";
 Port = "";
 Section = "6";
 Delete = "0";
@@ -45,7 +45,7 @@ if Port=="":
   Port="32400"
 if Section=="":
   Section = "1"
-URL = ("http://" + Host + ":" + Port + "/library/sections/" + Section + "/recentlyViewed")
+URL = ("http://" + Host + ":" + Port + "/library/sections/" + Section + "/folder")
 OnDeckURL = ("http://" + Host + ":" + Port + "/library/sections/" + Section + "/onDeck")
 print("")
 print("                           Detected Settings")
@@ -202,21 +202,28 @@ def CheckShows( CheckFile ):
 ####################################################################################
 ##  Get Files for Watched Shows
 ####################################################################################
-for VideoNode in doc.getElementsByTagName("Video"):
-  view = VideoNode.getAttribute("viewCount")
-  if view == '':
-    view = 0
-  view = int(view)
-  MediaNode = VideoNode.getElementsByTagName("Media")
-  for Media in MediaNode:
-    PartNode = Media.getElementsByTagName("Part")
-    for Part in PartNode:
-      file = Part.getAttribute("file")
-      if view > 0:
-          if os.path.isfile(file):
-            CheckShows(file);
-          else:
-            print("##[NOT FOUND] " + file)
+for ShowNode in doc.getElementsByTagName("Directory"):
+    directory = ShowNode.getAttribute("key")
+    show = ShowNode.getAttribute("title")
+    from urllib.request import urlopen
+    ShowDoc = xml.dom.minidom.parse(urlopen(("http://" + Host + ":" + Port + directory)))
+
+
+    for VideoNode in ShowDoc.getElementsByTagName("Video"):
+      view = VideoNode.getAttribute("viewCount")
+      if view == '':
+        view = 0
+      view = int(view)
+      MediaNode = VideoNode.getElementsByTagName("Media")
+      for Media in MediaNode:
+        PartNode = Media.getElementsByTagName("Part")
+        for Part in PartNode:
+          file = Part.getAttribute("file")
+          if view > 0:
+              if os.path.isfile(file):
+                CheckShows(file);
+              else:
+                print("##[NOT FOUND] " + file)
 
 ####################################################################################
 ##  Check Shows And Delete If Configured
