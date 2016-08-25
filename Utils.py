@@ -16,6 +16,8 @@ def add_episodes(series_id, t=None, db=None, is_mass_update=False):
     episodes = t[series_id].search('')
     update_show = db.query(Show).filter(Show.show_id == series_id).first()
 
+    update_show.banner  = t[series_id]['banner'] if t[series_id]['banner'] != None else ''
+
     models.ActionLog.log('Updating "%s"' % update_show.show_name)
     update_show.episodes.delete()
     db.commit()

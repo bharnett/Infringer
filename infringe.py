@@ -249,6 +249,9 @@ class Infringer(object):
                 new_show = Show(show_id=series_id, show_name=s['seriesname'], first_aired=first_aired_date,
                                 is_active=s.data['status'] == 'Continuing', banner=s['banner'])
 
+                if new_show.banner == None:
+                    new_show.banner = ''
+
                 # create folder based on show name:
                 new_show.show_directory = '/' + new_show.show_name.replace('.', '').strip()
                 phys_directory = cherrypy.request.db.query(Config).first().tv_parent_directory + new_show.show_directory
@@ -264,6 +267,7 @@ class Infringer(object):
                 # http://stackoverflow.com/questions/7753073/jquery-ajax-post-to-django-view
         except Exception as ex:
             # logger.exception(ex)
+            ActionLog.log(ex)
             status = 'error'
 
         return json.dumps(status)
