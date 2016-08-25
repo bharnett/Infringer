@@ -287,7 +287,7 @@ class Infringer(object):
                 Utils.update_all()
 
         except Exception as ex:
-            ActionLog.ActionLog(ex)
+            ActionLog.log(ex)
             status = 'error'
 
         return json.dumps(status)

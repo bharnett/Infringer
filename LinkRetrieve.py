@@ -165,13 +165,21 @@ def search_sites(list_of_shows):
 
                     links_valid = True
                     for file_share_link in episode_links:
-                        if link_browser.get(file_share_link).status_code != 200:
-                            links_valid = False
-                            show_searcher.found = False
-                            show_searcher.retrieved = False
-                            ActionLog.log('Just kidding, "%s" had a bad link or links :(' % show_searcher)
+                        try:
+                            if link_browser.get(file_share_link).status_code != 200:
+                                links_valid = False
+                                show_searcher.found = False
+                                show_searcher.retrieved = False
+                                ActionLog.log('Just kidding, "%s" had a bad link or links :(' % show_searcher)
 
-                            break
+                                break
+                        except Exception as ex:
+                                links_valid = False
+                                show_searcher.found = False
+                                show_searcher.retrieved = False
+                                ActionLog.log('Just kidding, "%s" had a bad link or links :(' % show_searcher)
+
+                                break
 
                     if links_valid:
                         process_tv_link(db, config, show_searcher, episode_links)
