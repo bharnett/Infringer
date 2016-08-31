@@ -27,6 +27,8 @@ Section = "6";
 Delete = "0";
 Shows = ["The Simpsons"];
 OnDeck = "1";
+Movie_Section = "2"
+NetworkMoviePath = "/Volumes/public/movies/"
 
 ####################################################################################
 ##                        NO NEED TO EDIT BELOW THIS LINE  
@@ -47,6 +49,7 @@ if Section=="":
   Section = "1"
 URL = ("http://" + Host + ":" + Port + "/library/sections/" + Section + "/folder")
 OnDeckURL = ("http://" + Host + ":" + Port + "/library/sections/" + Section + "/onDeck")
+Movie_Url = ("http://" + Host + ":" + Port + "/library/sections/" + Movie_Section + "/rating/10")
 print("")
 print("                           Detected Settings")
 print("")
@@ -108,6 +111,7 @@ if PC=="L":
   from urllib.request import urlopen
   doc = xml.dom.minidom.parse(urlopen(URL))
   deck = xml.dom.minidom.parse(urlopen(OnDeckURL))
+  movie_doc = xml.dom.minidom.parse(urlopen(Movie_Url))
 elif PC=="W":
   print("Operating System: Windows " + AD)
   import urllib.request
@@ -224,6 +228,19 @@ for ShowNode in doc.getElementsByTagName("Directory"):
                 CheckShows(file);
               else:
                 print("##[NOT FOUND] " + file)
+
+# copy 5* movies to network drive
+# loop through movies to find ones that are in the pny256 drive
+for VideoNode in movie_doc.getElementsByTagName("Video"):
+  MediaNode = VideoNode.getElementsByTagName("Media")
+  for Media in MediaNode:
+    PartNode = Media.getElementsByTagName("Part")
+    for Part in PartNode:
+      file = Part.getAttribute("file")
+      destination_file = NetworkMoviePath + os.path.basename(file)
+      if 'pny256' in file:
+          os.rename(file, destination_file)
+
 
 ####################################################################################
 ##  Check Shows And Delete If Configured
