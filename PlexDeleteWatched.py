@@ -21,10 +21,10 @@
 ####################################################################################
 
 PC = "L";
-Host = "0";
+Host = "192.168.1.12";
 Port = "";
-Section = "6";
-Delete = "0";
+Section = "1";
+Delete = "1";
 Shows = ["The Simpsons"];
 OnDeck = "1";
 
@@ -35,7 +35,7 @@ import os
 import xml.dom.minidom
 import platform
 import re
-
+import requests
 ####################################################################################
 ##  Checking URL
 ####################################################################################
@@ -55,6 +55,41 @@ print("Port: " + Port)
 print("Section: " + Section)
 print("URL: " + URL)
 print("OnDeck URL: " + OnDeckURL)
+
+####################################################################################
+##  Get Auth Tokens
+####################################################################################
+plex_unique_id = '8cab94b9-f1e1-41b6-8c02-69ff9e886e1b'
+plex_client_name = 'PlexDeleteWatched'
+plex_version = '1.0.0.0'
+plex_user_token = ''
+plex_server_token = ''
+plex_username = 'bharnett1825@gmail.com'
+plex_pw = 'plexytime'
+plex_auth_url = 'https://plex.tv/users/sign_in.json'
+plex_servers_url = 'https://plex.tv/pms/servers.xml'
+plex_server_name = "brian's Mac mini"
+
+payload = {'user[password]': plex_pw, 'user[login]': plex_username}
+headers = {'X-Plex-Product': plex_unique_id, 'X-Plex-Client-Identifier' : plex_client_name, 'X-Plex-Version' : plex_version}
+r = requests.post(plex_auth_url, params=payload, headers=headers)
+response_json = r.json()
+plex_user_token = response_json['user']['authToken']
+server_request = requests.get(plex_servers_url, headers={'X-Plex-Token': plex_user_token})
+server_response = xml.dom.minidom.parseString(server_request.text)
+servers = xml.dom.minidom.parseString(server_request.text).getElementsByTagName('Server')
+
+if len(servers) == 0:
+    print('No server token found with matching plex server name %s.' % plex_server_name )
+    exit()
+
+
+for server in servers:
+    if server.getAttribute('name') == plex_server_name:
+        plex_server_token = server.getAttribute('accessToken')
+
+if plex_server_token == '':
+    plex_server_token = servers[0].getAttribute('accessToken')  # get first if you can't find a match
 
 ####################################################################################
 ##  Checking Shows
@@ -102,23 +137,26 @@ if PC=="":
 
 ####################################################################################
 ##  Setting OS Based Variables
-####################################################################################
-if PC=="L":
-  print("Operating System: Linux " + AD)
+# ####################################################################################
+# if PC=="L":
+#   print("Operating System: Linux " + AD)
   from urllib.request import urlopen
-  doc = xml.dom.minidom.parse(urlopen(URL))
-  deck = xml.dom.minidom.parse(urlopen(OnDeckURL))
-elif PC=="W":
-  print("Operating System: Windows " + AD)
-  import urllib.request
-  doc = xml.dom.minidom.parse(urllib.request.urlopen(URL))
-  deck = xml.dom.minidom.parse(urllib.request.urlopen(OnDeckURL))
-else:
-  print("Operating System: ** Not Configured **  (" + platform.system() + ") is not recognized.")
-  exit()
-print("")
-print("")
-print("")
+doc = xml.dom.minidom.parseString(requests.get(URL, headers={'X-Plex-Token': plex_server_token}).text)
+deck= xml.dom.minidom.parseString(requests.get(OnDeckURL, headers={'X-Plex-Token': plex_server_token}).text)
+
+  #doc = xml.dom.minidom.parse(urlopen(URL))
+  #deck = xml.dom.minidom.parse(urlopen(OnDeckURL))
+# elif PC=="W":
+#   print("Operating System: Windows " + AD)
+#   import urllib.request
+#   doc = xml.dom.minidom.parse(urllib.request.urlopen(URL))
+#   deck = xml.dom.minidom.parse(urllib.request.urlopen(OnDeckURL))
+# else:
+#   print("Operating System: ** Not Configured **  (" + platform.system() + ") is not recognized.")
+#   exit()
+# print("")
+# print("")
+# print("")
 
 FileCount = 0
 DeleteCount = 0
@@ -205,8 +243,10 @@ def CheckShows( CheckFile ):
 for ShowNode in doc.getElementsByTagName("Directory"):
     directory = ShowNode.getAttribute("key")
     show = ShowNode.getAttribute("title")
-    from urllib.request import urlopen
-    ShowDoc = xml.dom.minidom.parse(urlopen(("http://" + Host + ":" + Port + directory)))
+    #from urllib.request import urlopen
+
+    #ShowDoc = xml.dom.minidom.parse(urlopen(("http://" + Host + ":" + Port + directory)))
+    ShowDoc = xml.dom.minidom.parseString(requests.get(("http://" + Host + ":" + Port + directory), headers={'X-Plex-Token': plex_server_token}).text)
 
 
     for VideoNode in ShowDoc.getElementsByTagName("Video"):
