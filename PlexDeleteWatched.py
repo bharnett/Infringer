@@ -145,7 +145,8 @@ if PC=="":
 #   print("Operating System: Linux " + AD)
 #from urllib.request import urlopen
 doc = xml.dom.minidom.parseString(requests.get(URL, headers={'X-Plex-Token': plex_server_token}).text)
-deck= xml.dom.minidom.parseString(requests.get(OnDeckURL, headers={'X-Plex-Token': plex_server_token}).text)
+deck = xml.dom.minidom.parseString(requests.get(OnDeckURL, headers={'X-Plex-Token': plex_server_token}).text)
+movie_doc = xml.dom.minidom.parseString(requests.get(Movie_Url, headers={'X-Plex-Token': plex_server_token}).text)
 
   #doc = xml.dom.minidom.parse(urlopen(URL))
   #deck = xml.dom.minidom.parse(urlopen(OnDeckURL))
@@ -279,7 +280,8 @@ for VideoNode in movie_doc.getElementsByTagName("Video"):
       file = Part.getAttribute("file")
       destination_file = NetworkMoviePath + os.path.basename(file)
       if 'pny256' in file:
-          os.rename(file, destination_file)
+        os.rename(file, destination_file)
+        print('%s moved to NAS' % file)
 
 
 ####################################################################################
