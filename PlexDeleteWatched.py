@@ -21,7 +21,7 @@
 ####################################################################################
 
 PC = "L";
-Host = "192.168.1.12";
+Host = "";
 Port = "";
 Section = "1";
 Delete = "1";
@@ -38,6 +38,7 @@ import xml.dom.minidom
 import platform
 import re
 import requests
+import shutil
 ####################################################################################
 ##  Checking URL
 ####################################################################################
@@ -280,7 +281,7 @@ for VideoNode in movie_doc.getElementsByTagName("Video"):
       file = Part.getAttribute("file")
       destination_file = NetworkMoviePath + os.path.basename(file)
       if 'pny256' in file:
-        os.rename(file, destination_file)
+        shutil.move(file, destination_file)
         print('%s moved to NAS' % file)
 
 
