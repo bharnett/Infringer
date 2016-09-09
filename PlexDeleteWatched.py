@@ -144,7 +144,6 @@ if PC=="":
 # if PC=="L":
 #   print("Operating System: Linux " + AD)
 #from urllib.request import urlopen
-<<<<<<< HEAD
 doc = xml.dom.minidom.parseString(requests.get(URL, headers={'X-Plex-Token': plex_server_token}).text)
 deck= xml.dom.minidom.parseString(requests.get(OnDeckURL, headers={'X-Plex-Token': plex_server_token}).text)
 
@@ -161,22 +160,7 @@ deck= xml.dom.minidom.parseString(requests.get(OnDeckURL, headers={'X-Plex-Token
 # print("")
 # print("")
 # print("")
-=======
-  doc = xml.dom.minidom.parse(urlopen(URL))
-  deck = xml.dom.minidom.parse(urlopen(OnDeckURL))
-  movie_doc = xml.dom.minidom.parse(urlopen(Movie_Url))
-elif PC=="W":
-  print("Operating System: Windows " + AD)
-  import urllib.request
-  doc = xml.dom.minidom.parse(urllib.request.urlopen(URL))
-  deck = xml.dom.minidom.parse(urllib.request.urlopen(OnDeckURL))
-else:
-  print("Operating System: ** Not Configured **  (" + platform.system() + ") is not recognized.")
-  exit()
-print("")
-print("")
-print("")
->>>>>>> origin/master
+
 
 FileCount = 0
 DeleteCount = 0
