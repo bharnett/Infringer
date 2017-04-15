@@ -241,7 +241,8 @@ def CheckShows( CheckFile ):
       print("**[FLAGGED] " + CheckFile)
       FlaggedCount += 1
   else:
-    print("[KEEPING]" + ShowFound + " " + CheckFile)
+    #print ("[KEEPING] %s ' ' %s") % (ShowFound, CheckFile)
+    print("[KEEPING]" + ShowFound.encode('ascii', 'ignore').decode('ascii')+ " " + CheckFile.encode('ascii', 'ignore').decode('ascii'))
 
 ####################################################################################
 ##  Get Files for Watched Shows
@@ -273,16 +274,16 @@ for ShowNode in doc.getElementsByTagName("Directory"):
 
 # copy 5* movies to network drive
 # loop through movies to find ones that are in the pny256 drive
-for VideoNode in movie_doc.getElementsByTagName("Video"):
-  MediaNode = VideoNode.getElementsByTagName("Media")
-  for Media in MediaNode:
-    PartNode = Media.getElementsByTagName("Part")
-    for Part in PartNode:
-      file = Part.getAttribute("file")
-      destination_file = NetworkMoviePath + os.path.basename(file)
-      if 'pny256' in file:
-        shutil.move(file, destination_file)
-        print('%s moved to NAS' % file)
+# for VideoNode in movie_doc.getElementsByTagName("Video"):
+#   MediaNode = VideoNode.getElementsByTagName("Media")
+#   for Media in MediaNode:
+#     PartNode = Media.getElementsByTagName("Part")
+#     for Part in PartNode:
+#       file = Part.getAttribute("file")
+#       destination_file = NetworkMoviePath + os.path.basename(file)
+#       if 'pny256' in file:
+#         shutil.move(file, destination_file)
+#         print('%s moved to NAS' % file)
 
 
 ####################################################################################

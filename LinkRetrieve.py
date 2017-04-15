@@ -86,10 +86,10 @@ def handle_downloads():
     search_sites(pending_episodes)
     #
     # create index after searched the list posts
-    CreateIndexes(False)
-    SearchDbForShow(pending_episodes)  # search db for indexed options
+    #CreateIndexes(False)
+    #SearchDbForShow(pending_episodes)  # search db for indexed options
 
-    # search warez-bb.org by their search form lastly
+    # search warez-bb.org and puzo by their search forms lastly
     remaining_shows = [s for s in pending_episodes if not s.retrieved]
     show_search_form(None, remaining_shows, models.connect())
 
@@ -229,6 +229,12 @@ def source_login(source):
             login_form.findAll("input", {"type": "password"})[0]['value'] = source.password
             response_page = browser.submit(login_form, login_page.url)
             return browser
+        elif 'puzo.org' in source.domain:
+            login_form = login_page.soup.select('form')[1]
+            login_form.findAll("input", {"type": "text"})[0]['value'] = source.username
+            login_form.findAll("input", {"type": "password"})[0]['value'] = source.password
+            response_page = browser.submit(login_form, login_page.url)
+            return browser
         else:
             return None
     else:
@@ -331,7 +337,7 @@ def show_search_form(episode_id, episode_list=[], db=None):
         if browser is not None:
             # soup = browser.get(source.url).soup  # this is the search page
             # put together search form only for warez.bb for now
-            if 'warez-bb.org' in source.domain:
+            if 'warez-bb.org' in source.domain or 'puzo.org' in source.domain:
                 search_page = browser.get(source.url)
 
                 for episode in episode_list:
@@ -365,7 +371,11 @@ def submit_search(browser, search_show, search_page, source, db):
 
 
         for l in show_links:
-            show_page = "%s/%s" % (source.domain, l['href'])
+            if (source.domain in l['href']):
+                show_page = l['href']
+            else:
+                show_page = "%s/%s" % (source.domain, l['href'])
+
             show_page_response = browser.get(show_page)
             search_show.found = True
             download_links = get_download_links(show_page_response.soup, config, source.domain)
@@ -430,6 +440,11 @@ def get_download_links(soup, config, domain, hd_format='720p'):
                 all_links.append(c.parent.parent.find('pre').text)
     elif 'warez-bb.org' in domain:
         code_elements = soup.select('.code span')
+        if len(code_elements) == 0: return []
+        for c in code_elements:
+            all_links.append(c.text)
+    elif 'puzo.org' in domain:
+        code_elements = soup.select('.prettyprint')
         if len(code_elements) == 0: return []
         for c in code_elements:
             all_links.append(c.text)
